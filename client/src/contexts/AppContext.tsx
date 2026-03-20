@@ -3,6 +3,7 @@ import { storage } from "@/lib/storage";
 import { defaultShopItems } from "@/lib/defaultShopItems";
 import { supabase } from "@/lib/supabase";
 import { syncSave, syncLoad } from "@/lib/sync";
+import { toast } from "sonner";
 
 // Color palette for folders/goals/blocks
 export const FOLDER_COLORS = [
@@ -226,6 +227,7 @@ interface AppContextType {
   moveTaskDown: (taskId: string) => void;
   isSyncing: boolean;
   syncWithCloud: () => Promise<void>;
+  forceSyncFromCloud: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -367,6 +369,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, []);
+
+  const forceSyncFromCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Пользователь не авторизован");
+      
+      const remoteData = await syncLoad(session.user.id) as any;
+      if (!remoteData) throw new Error("Данные в облаке не найдены");
+      
+      console.log("Force Sync: Overwriting local state with remote data");
+      setCoins(remoteData.coins || 0);
+      setHabits((remoteData.habits || []).map(migrateHabit));
+      setBlocks(remoteData.blocks || []);
+      setHabitFolders(remoteData.habitFolders || []);
+      setGoals(remoteData.goals || []);
+      setGoalFolders(remoteData.goalFolders || []);
+      setShopItems(remoteData.shopItems || []);
+      setShopFolders(remoteData.shopFolders || []);
+      setCharacterState(remoteData.characterState || {});
+      setTasks(remoteData.tasks || []);
+      storage.saveData(remoteData);
+      
+      toast.success("Данные успешно загружены из облака!");
+    } catch (err: any) {
+      console.error("Force Sync Error:", err);
+      toast.error(`Ошибка принудительной синхронизации: ${err.message}`);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const isHabitCompletedToday = (habit: Habit): boolean => {
     const today = getTodayDateString();
@@ -934,6 +968,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         moveTaskDown,
         isSyncing,
         syncWithCloud,
+        forceSyncFromCloud,
       }}
     >
       {children}

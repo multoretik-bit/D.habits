@@ -34,7 +34,7 @@ export const storage = {
       shop: [],
       character: {},
       characterState: {},
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: "1970-01-01T00:00:00.000Z",
     };
   },
   getData(): StorageData {
