@@ -11,10 +11,14 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passLoading, setPassLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showSql, setShowSql] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+      setUserEmail(data.user?.email || null);
+    });
   }, []);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +105,11 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
+          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1.5">
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono italic">
+              <span>EMAIL:</span>
+              <span className="text-blue-400 select-all font-bold">{userEmail || "загрузка..."}</span>
+            </div>
             <div className="flex justify-between text-[10px] text-slate-500 font-mono italic">
               <span>USER ID:</span>
               <span className="text-slate-400 select-all">{userId || "загрузка..."}</span>
