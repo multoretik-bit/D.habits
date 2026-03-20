@@ -9,7 +9,7 @@ import { Mail, Loader2, CheckCircle2, Inbox, Lock, Key, FlaskConical } from "luc
 export default function AuthPage({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [step, setStep] = useState<"email" | "password" | "sent">("email");
+  const [step, setStep] = useState<"email" | "password" | "signup" | "sent">("email");
   const [loading, setLoading] = useState(false);
 
   const handleSendLink = async (e: React.FormEvent) => {
@@ -48,6 +48,26 @@ export default function AuthPage({ onLogin }: { onLogin: () => void }) {
       toast.error("Ошибка входа: " + error.message);
     } else {
       onLogin();
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return toast.error("Введите email и пароль");
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      }
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Ошибка регистрации: " + error.message);
+    } else {
+      toast.success("Регистрация успешна! Проверьте почту для подтверждения.");
+      setStep("sent");
     }
   };
 
@@ -95,9 +115,60 @@ export default function AuthPage({ onLogin }: { onLogin: () => void }) {
               <button
                 type="button"
                 onClick={() => setStep("password")}
-                className="w-full text-slate-400 text-sm hover:text-white transition-colors flex items-center justify-center gap-2"
+                className="w-full text-slate-400 text-xs hover:text-white transition-colors flex items-center justify-center gap-2 pt-2"
               >
-                <Lock className="w-4 h-4" /> Войти по паролю
+                <Lock className="w-3.5 h-3.5" /> Уже есть аккаунт и пароль? Войти
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("signup")}
+                className="w-full text-blue-400 text-xs hover:text-blue-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <Key className="w-3.5 h-3.5" /> Создать аккаунт с паролем
+              </button>
+            </form>
+          )}
+
+          {step === "signup" && (
+            <form onSubmit={handleSignUp} className="space-y-5 relative z-10">
+              <div className="space-y-2">
+                <Label htmlFor="signup-email" className="text-slate-300 text-sm font-medium">Email адрес</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    className="pl-10 bg-slate-950 border-slate-700 text-white rounded-xl h-12"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-password" className="text-slate-300 text-sm font-medium">Придумайте пароль</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-10 bg-slate-950 border-slate-700 text-white rounded-xl h-12"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full bg-blue-600 rounded-xl h-12 font-bold hover:bg-blue-500" disabled={loading}>
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Зарегистрироваться"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setStep("email")}
+                className="w-full text-slate-400 text-sm hover:text-white transition-colors"
+              >
+                ← Назад к входу по ссылке
               </button>
             </form>
           )}
