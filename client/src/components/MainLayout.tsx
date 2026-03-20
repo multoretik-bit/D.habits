@@ -19,7 +19,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, onSignOut }: MainLayoutProps) {
   const [location] = useLocation();
-  const { coins, isSyncing } = useApp();
+  const { coins, isSyncing, isOnline } = useApp();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -34,8 +34,15 @@ export default function MainLayout({ children, onSignOut }: MainLayoutProps) {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 bg-blue-950/40 border border-blue-900/40 px-3 py-1.5 rounded-full shadow-inner mr-1">
             <CoinDisplay amount={coins} size="sm" showLabel={true} />
-            <div className={`transition-all duration-500 ${isSyncing ? "opacity-100 scale-100" : "opacity-30 scale-90"}`}>
-              <Cloud className={`w-3.5 h-3.5 ${isSyncing ? "text-blue-400 animate-pulse" : "text-slate-500"}`} />
+            <div className="relative flex items-center justify-center">
+              <Cloud className={`w-3.5 h-3.5 transition-all duration-300 ${
+                !isOnline ? "text-red-500 opacity-100" :
+                isSyncing ? "text-blue-400 animate-pulse scale-110" :
+                "text-emerald-400 opacity-80"
+              }`} />
+              {isOnline && !isSyncing && (
+                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full border border-[#060c1c] shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+              )}
             </div>
           </div>
           <Link href="/settings">

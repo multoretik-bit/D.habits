@@ -226,6 +226,7 @@ interface AppContextType {
   moveTaskUp: (taskId: string) => void;
   moveTaskDown: (taskId: string) => void;
   isSyncing: boolean;
+  isOnline: boolean;
   syncWithCloud: () => Promise<void>;
   forceSyncFromCloud: () => Promise<void>;
 }
@@ -255,11 +256,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [characterState, setCharacterState] = useState<CharacterState>({});
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   
   // Refs for sync management
   const isInitialLoadRef = React.useRef(true);
   const isRemoteUpdateRef = React.useRef(false);
   const syncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const clientIdRef = React.useRef<string>(localStorage.getItem("dhabits_client_id") || Math.random().toString(36).substring(7));
+
+  // State ref to avoid stale closures in sync calls
+  const currentStateRef = React.useRef({
+    coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dhabits_client_id", clientIdRef.current);
+  }, []);
+
+  useEffect(() => {
+    currentStateRef.current = {
+      coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks
+    };
+  }, [coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks]);
 
   useEffect(() => {
     const savedData = storage.getData();
@@ -324,7 +342,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setCharacterState(remoteData.characterState || {});
               setTasks(remoteData.tasks || []);
               storage.saveData(remoteData);
-              setTimeout(() => { isRemoteUpdateRef.current = false; }, 100);
+              setTimeout(() => { isRemoteUpdateRef.current = false; }, 200);
             }
           }
         } catch (err) {
@@ -342,12 +360,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               table: 'user_data',
               filter: `user_id=eq.${session.user.id}`
             },
-            (payload) => {
-              const newData = (payload.new as any)?.data;
+            (payload: any) => {
+              console.log("Sync: Real-time update payload received:", payload.eventType);
+              const newData = payload.new?.data;
               if (newData && newData.lastUpdated) {
+                // Ignore updates from the same client
+                if (newData.clientId === clientIdRef.current) {
+                  console.log("Sync: Ignoring local-originated update from channel");
+                  return;
+                }
+
                 const currentData = storage.getData();
                 if (new Date(newData.lastUpdated) > new Date(currentData.lastUpdated || 0)) {
-                  console.log("Sync: Received newer remote data via real-time channel");
+                  console.log("Sync: Applying newer remote data from another device");
                   isRemoteUpdateRef.current = true;
                   setCoins(newData.coins || 0);
                   setHabits((newData.habits || []).map(migrateHabit));
@@ -360,12 +385,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   setCharacterState(newData.characterState || {});
                   setTasks(newData.tasks || []);
                   storage.saveData(newData);
-                  setTimeout(() => { isRemoteUpdateRef.current = false; }, 100);
+                  setTimeout(() => { isRemoteUpdateRef.current = false; }, 200);
                 }
               }
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            console.log("Sync: Channel status change:", status);
+            setIsOnline(status === 'SUBSCRIBED');
+          });
       }
       setIsSyncing(false);
       isInitialLoadRef.current = false;
@@ -391,28 +419,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!session?.user) return;
 
       const data: StorageData = {
-        coins,
-        habits,
-        blocks,
-        habitFolders,
-        goals,
-        goalFolders,
-        shopItems,
-        shopFolders,
+        ...currentStateRef.current,
+        clientId: clientIdRef.current,
+        lastUpdated: new Date().toISOString(),
         character: {},
-        characterState,
-        tasks,
         progress: {},
         streaks: {},
         shop: [],
         folders: [],
-        lastUpdated: new Date().toISOString(),
       };
       
-      console.log("Sync: Auto-saving local changes to cloud...");
+      console.log("Sync: Sending auto-update to cloud (origin:", clientIdRef.current, ")");
       storage.saveData(data);
       await syncSave(session.user.id, data);
-    }, 500); // 0.5 second debounce
+    }, 100); // Super-fast 100ms debounce
 
     return () => {
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
@@ -1009,6 +1029,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isSyncing,
         syncWithCloud,
         forceSyncFromCloud,
+        isOnline
       }}
     >
       {children}
