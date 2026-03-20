@@ -6,27 +6,17 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 export default function SettingsPage() {
-  const { exportBackup, importBackup, isSyncing, syncWithCloud, forceSyncFromCloud } = useApp();
+  const { exportBackup, importBackup, isSyncing, forceSyncFromCloud, forcePushToCloud } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPassword, setNewPassword] = useState("");
   const [passLoading, setPassLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [showSql, setShowSql] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id || null);
-      setUserEmail(data.user?.email || null);
-    });
-  }, []);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const success = await importBackup(file);
     if (success) {
-      toast.success("Бэкап импортирован! Перезагрузите страницу.");
+      toast.success("Бэкап импортирован!");
     } else {
       toast.error("Ошибка импорта бэкапа.");
     }
@@ -36,15 +26,6 @@ export default function SettingsPage() {
     if (confirm("Вы уверены? Все данные будут удалены безвозвратно!")) {
       localStorage.removeItem("dhabits_data");
       window.location.reload();
-    }
-  };
-
-  const handleSync = async () => {
-    try {
-      await syncWithCloud();
-      toast.success("Данные синхронизированы!");
-    } catch (err) {
-      toast.error("Ошибка синхронизации. Проверь интернет.");
     }
   };
 
@@ -64,149 +45,51 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 space-y-8 max-w-2xl mx-auto pb-24">
-      <h2 className="text-3xl font-bold text-foreground">Настройки</h2>
+      <h2 className="text-3xl font-bold text-foreground font-display">Настройки</h2>
 
       {/* Cloud Sync */}
-      <div className="bg-card border border-border rounded-xl p-6 space-y-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 rounded-lg">
-            <Cloud className="w-5 h-5 text-blue-400" />
+      <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-6 shadow-xl backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 rounded-xl">
+            <Cloud className="w-6 h-6 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Облачная синхронизация</h3>
-            <p className="text-muted-foreground text-xs">Подключите все устройства к вашему аккаунту</p>
+            <h3 className="text-xl font-bold text-foreground">Синхронизация</h3>
+            <p className="text-muted-foreground text-xs">Управление вашими данными в облаке</p>
           </div>
         </div>
         
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          Ваши данные автоматически сохраняются в облаке. Если вы зашли с нового устройства, нажмите кнопку ниже, чтобы загрузить последние изменения.
-        </p>
-
-        <Button 
-          onClick={handleSync} 
-          disabled={isSyncing}
-          className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-6 rounded-xl transition-all active:scale-[0.98]"
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-          {isSyncing ? "Синхронизация..." : "Синхронизировать сейчас"}
-        </Button>
-      </div>
-
-      {/* Diagnostics */}
-      <div className="bg-card border border-amber-500/20 rounded-xl p-6 space-y-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-amber-500/10 rounded-lg">
-            <ShieldAlert className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Диагностика синхронизации</h3>
-            <p className="text-muted-foreground text-xs">Если данные не появляются на другом устройстве</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1.5">
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono italic">
-              <span>EMAIL:</span>
-              <span className="text-blue-400 select-all font-bold">{userEmail || "загрузка..."}</span>
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono italic">
-              <span>USER ID:</span>
-              <span className="text-slate-400 select-all">{userId || "загрузка..."}</span>
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono italic">
-              <span>SYNC STATUS:</span>
-              <span className={userId ? "text-green-500" : "text-red-500"}>{userId ? "ПОДКЛЮЧЕНО" : "ОШИБКА"}</span>
-            </div>
-          </div>
-
-          <p className="text-muted-foreground text-xs leading-relaxed italic">
-            Если синхронизация все равно не работает, возможно, база данных Supabase не настроена. Нажмите кнопку ниже, чтобы получить скрипт для починки.
-          </p>
-
-          <Button 
-            variant="ghost" 
-            onClick={() => setShowSql(!showSql)}
-            className="w-full gap-2 text-amber-400 hover:text-amber-300 hover:bg-amber-400/5 rounded-xl text-xs h-10"
-          >
-            <Code className="w-4 h-4" />
-            {showSql ? "Скрыть SQL скрипт" : "Показать SQL скрипт для починки"}
-          </Button>
-
-          {showSql && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <p className="text-[11px] text-slate-400">
-                Скопируйте этот код и вставьте его в SQL Editor вашего проекта Supabase:
-              </p>
-              <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[10px] text-emerald-400 overflow-x-auto font-mono whitespace-pre select-all shadow-inner">
-{`-- 1. Исправление прав (ОБЯЗАТЕЛЬНО)
-grant all on table public.user_data to authenticated;
-grant all on table public.user_data to postgres;
-grant all on table public.user_data to service_role;
-
--- 2. Включаем RLS
-alter table public.user_data enable row level security;
-
--- 3. Настройка политики (Удаляем старую и создаем новую)
-drop policy if exists "Users can manage their own data" on public.user_data;
-
-create policy "Users can manage their own data" 
-  on public.user_data 
-  for all 
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
--- 4. Включение Realtime
-begin;
-  drop publication if exists supabase_realtime;
-  create publication supabase_realtime;
-commit;
-alter publication supabase_realtime add table user_data;`}
-              </pre>
-            </div>
-          )}
-
-          <div className="pt-2 space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-4">
             <Button 
-              onClick={forceSyncFromCloud} 
+              onClick={forcePushToCloud} 
+              disabled={isSyncing}
+              className="w-full h-14 gap-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+            >
+              <Upload className={`w-5 h-5 ${isSyncing ? "animate-bounce" : ""}`} />
+              Отправить в облако ⬆️
+            </Button>
+            <p className="text-[10px] text-slate-500 text-center italic px-4">
+              Заменит данные в облаке текущими данными с этого устройства.
+            </p>
+          </div>
+
+          <div className="space-y-4 pt-2 border-t border-slate-800/50">
+            <Button 
+              onClick={() => {
+                if(confirm("Это сотрет текущие данные на ЭТОМ устройстве. Продолжить?")) {
+                  forceSyncFromCloud();
+                }
+              }} 
               disabled={isSyncing}
               variant="outline"
-              className="w-full gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 rounded-xl py-6"
+              className="w-full h-14 gap-3 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 font-bold rounded-2xl transition-all active:scale-95"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-              Принудительно загрузить из облака
+              <Download className={`w-5 h-5 ${isSyncing ? "animate-bounce" : ""}`} />
+              Загрузить из облака ⬇️
             </Button>
-            
-            <div className="space-y-2">
-              <h4 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Журнал синхронизации</h4>
-              <div className="bg-slate-950/50 rounded-xl border border-slate-800/50 divide-y divide-slate-800/30 overflow-hidden">
-                {useApp().syncLogs.length === 0 ? (
-                  <div className="p-3 text-center text-[10px] text-slate-600 italic">Событий пока нет...</div>
-                ) : (
-                  useApp().syncLogs.map((log, i) => (
-                    <div key={i} className="p-2.5 flex justify-between items-center text-[10px]">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <span className="text-slate-500 font-mono">{log.time}</span>
-                        <span className={
-                          log.status === 'success' ? "text-emerald-400" :
-                          log.status === 'error' ? "text-red-400" :
-                          "text-blue-400 animate-pulse"
-                        }>{log.event}</span>
-                      </div>
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        log.status === 'success' ? "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" :
-                        log.status === 'error' ? "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" :
-                        "bg-blue-500 animate-pulse"
-                      }`} />
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-500 text-center mt-2">
-              (Внимание: сотрет текущие данные на ЭТОМ устройстве и заменит их на облачные)
+            <p className="text-[10px] text-slate-500 text-center italic px-4">
+              Скачает ваши последние данные из облака на это устройство.
             </p>
           </div>
         </div>

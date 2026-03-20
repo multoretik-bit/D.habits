@@ -230,6 +230,7 @@ interface AppContextType {
   syncLogs: {time: string, event: string, status: 'success' | 'error' | 'pending'}[];
   syncWithCloud: () => Promise<void>;
   forceSyncFromCloud: () => Promise<void>;
+  forcePushToCloud: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -468,8 +469,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const forcePushToCloud = async () => {
+    setIsSyncing(true);
+    logSyncEvent("Принудительная отправка...", "pending");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Пользователь не авторизован");
+      
+      const data: StorageData = {
+        ...currentStateRef.current,
+        clientId: clientIdRef.current,
+        lastUpdated: new Date().toISOString(),
+        character: {},
+        progress: {},
+        streaks: {},
+        shop: [],
+        folders: [],
+      };
+      
+      storage.saveData(data);
+      await syncSave(session.user.id, data);
+      logSyncEvent("Данные успешно отправлены", "success");
+      toast.success("Данные отправлены в облако!");
+    } catch (err) {
+      logSyncEvent("Ошибка отправки: " + (err as any).message, "error");
+      toast.error("Ошибка при отправке данных в облако");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const forceSyncFromCloud = async () => {
     setIsSyncing(true);
+    logSyncEvent("Принудительная загрузка...", "pending");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Пользователь не авторизован");
@@ -490,8 +522,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setTasks(remoteData.tasks || []);
       storage.saveData(remoteData);
       
+      logSyncEvent("Данные загружены из облака", "success");
       toast.success("Данные успешно загружены из облака!");
     } catch (err: any) {
+      logSyncEvent("Ошибка загрузки: " + err.message, "error");
       console.error("Force Sync Error:", err);
       toast.error(`Ошибка принудительной синхронизации: ${err.message}`);
       throw err;
@@ -1058,6 +1092,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isSyncing,
         syncWithCloud,
         forceSyncFromCloud,
+        forcePushToCloud,
         isOnline,
         syncLogs
       }}
