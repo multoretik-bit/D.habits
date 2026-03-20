@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { storage } from "@/lib/storage";
 import { defaultShopItems } from "@/lib/defaultShopItems";
 import { supabase } from "@/lib/supabase";
+import { syncSave, syncLoad } from "@/lib/sync";
 
 // Color palette for folders/goals/blocks
 export const FOLDER_COLORS = [
@@ -270,23 +271,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCharacterState(savedData.characterState || {});
     setTasks(savedData.tasks || []);
 
-    // Fetch remote data if authenticated and override if newer
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.user_metadata?.appState) {
-        const remoteData = session.user.user_metadata.appState;
-        const localLastUpdated = savedData.lastUpdated || 0;
-        if (remoteData.lastUpdated && new Date(remoteData.lastUpdated) > new Date(localLastUpdated)) {
-          setCoins(remoteData.coins || 0);
-          setHabits((remoteData.habits || []).map(migrateHabit));
-          setBlocks(remoteData.blocks || []);
-          setHabitFolders(remoteData.habitFolders || []);
-          setGoals(remoteData.goals || []);
-          setGoalFolders(remoteData.goalFolders || []);
-          setShopItems(remoteData.shopItems || []);
-          setShopFolders(remoteData.shopFolders || []);
-          setCharacterState(remoteData.characterState || {});
-          setTasks(remoteData.tasks || []);
-          storage.saveData(remoteData);
+    // Fetch remote data and override if newer
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const remoteData = await syncLoad(session.user.id) as any;
+        if (remoteData) {
+          const localLastUpdated = savedData.lastUpdated || 0;
+          if (remoteData.lastUpdated && new Date(remoteData.lastUpdated) > new Date(localLastUpdated)) {
+            setCoins(remoteData.coins || 0);
+            setHabits((remoteData.habits || []).map(migrateHabit));
+            setBlocks(remoteData.blocks || []);
+            setHabitFolders(remoteData.habitFolders || []);
+            setGoals(remoteData.goals || []);
+            setGoalFolders(remoteData.goalFolders || []);
+            setShopItems(remoteData.shopItems || []);
+            setShopFolders(remoteData.shopFolders || []);
+            setCharacterState(remoteData.characterState || {});
+            setTasks(remoteData.tasks || []);
+            storage.saveData(remoteData);
+          }
         }
       }
     });
@@ -329,11 +332,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     storage.saveData(dataObj);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        supabase.auth.updateUser({
-          data: { appState: dataObj }
-        }).catch(console.error);
+        await syncSave(session.user.id, dataObj);
       }
     });
   };
