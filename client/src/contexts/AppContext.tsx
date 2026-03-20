@@ -70,6 +70,8 @@ export interface Task {
   isAllDay: boolean;
   color: string;
   completedDates: Record<string, boolean>;
+  coins?: number;
+  isOneTime?: boolean;
 }
 
 
@@ -936,15 +938,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!task) return;
     const targetDate = dateStr || getTodayDateString();
     const isCompleted = !!(task.completedDates && task.completedDates[targetDate]);
+
+    // One-time deletion logic
+    if (!isCompleted && task.isOneTime) {
+      if (task.coins && task.coins > 0) {
+        addCoins(task.coins);
+      }
+      deleteTask(id);
+      return;
+    }
+
     const newCompletedDates = { ...task.completedDates };
+    let coinsChange = 0;
     if (isCompleted) {
       delete newCompletedDates[targetDate];
+      coinsChange = -(task.coins || 0);
     } else {
       newCompletedDates[targetDate] = true;
+      coinsChange = task.coins || 0;
     }
+
     const newTasks = tasks.map((t) => (t.id === id ? { ...t, completedDates: newCompletedDates } : t));
-    setTasks(newTasks);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    
+    // Sync update
+    if (coinsChange !== 0) {
+      const newCoins = Math.round((coins + coinsChange) * 100) / 100;
+      setCoins(newCoins);
+      setTasks(newTasks);
+      saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    } else {
+      setTasks(newTasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    }
   };
 
   const moveTaskUp = (taskId: string) => {

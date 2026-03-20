@@ -149,6 +149,17 @@ function TaskRow({ task, dateStr }: { task: Task; dateStr: string }) {
         background: completed ? "rgba(15,23,42,0.4)" : `linear-gradient(135deg, ${taskColor}12 0%, rgba(15,23,42,0.6) 100%)`
       }}
     >
+      {/* Coin badge LEFT */}
+      {!completed && task.coins && task.coins > 0 && (
+        <div 
+          className="flex-shrink-0 flex flex-col items-center justify-center w-10 h-10 rounded-xl text-center"
+          style={{ backgroundColor: `${taskColor}25`, border: `1px solid ${taskColor}40` }}
+        >
+          <span className="text-[12px] leading-none">🪙</span>
+          <span className="text-[9px] font-bold text-white leading-tight mt-0.5">{task.coins}</span>
+        </div>
+      )}
+
       <span 
         className="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl text-xl"
         style={{ backgroundColor: completed ? "#1e293b" : `${taskColor}22` }}

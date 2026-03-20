@@ -272,31 +272,36 @@ function TasksTab() {
 
   const [title, setTitle] = useState("");
   const [emoji, setEmoji] = useState("📋");
+  const [color, setColor] = useState("#3b82f6");
   const [blockId, setBlockId] = useState("");
   const [days, setDays] = useState<number[]>([]);
   const [isAllDay, setIsAllDay] = useState(true);
+  const [coins, setCoins] = useState("5");
+  const [isOneTime, setIsOneTime] = useState(false);
 
   const resetForm = () => {
     setTitle(""); setEmoji("📋"); setBlockId(""); setDays([]); setIsAllDay(true);
+    setCoins("5"); setIsOneTime(false); setColor("#3b82f6");
   };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    addTask({ id: nanoid(), title, emoji, blockId: blockId || undefined, daysOfWeek: days, isAllDay, completedDates: {} });
+    addTask({ id: nanoid(), title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay, completedDates: {}, coins: Number(coins), isOneTime });
     resetForm(); setShowCreate(false);
   };
 
   const handleOpenEdit = (t: Task) => {
     setEditingId(t.id); setTitle(t.title); setEmoji(t.emoji);
     setBlockId(t.blockId || ""); setDays(t.daysOfWeek); setIsAllDay(t.isAllDay);
+    setCoins(String(t.coins || 5)); setIsOneTime(!!t.isOneTime); setColor(t.color || "#3b82f6");
     setShowEdit(true);
   };
 
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId || !title.trim()) return;
-    updateTask(editingId, { title, emoji, blockId: blockId || undefined, daysOfWeek: days, isAllDay });
+    updateTask(editingId, { title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay, coins: Number(coins), isOneTime });
     setShowEdit(false); resetForm();
   };
 
@@ -304,6 +309,10 @@ function TasksTab() {
     <>
       <FormInput label="Название задачи" value={title} onChange={setTitle} placeholder="например, Выпить воду" />
       <EmojiPicker label="Эмодзи" value={emoji} onChange={setEmoji} />
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Цвет</label>
+        <AdvancedColorPicker value={color} onChange={setColor} />
+      </div>
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">Блок (опционально)</label>
         <select value={blockId} onChange={(e) => setBlockId(e.target.value)}
@@ -317,6 +326,10 @@ function TasksTab() {
         <DayPicker value={days} onChange={setDays} />
       </div>
       <FormCheckbox label="Задача на весь день (показывать без привязки к блоку)" checked={isAllDay} onChange={setIsAllDay} />
+      <FormInput label="Монет за выполнение" value={coins} onChange={setCoins} type="number" />
+      <div className="pt-2 border-t border-border mt-2">
+        <FormCheckbox label="Одноразовая (исчезнет после выполнения)" checked={isOneTime} onChange={setIsOneTime} />
+      </div>
     </>
   );
 
@@ -342,7 +355,11 @@ function TasksTab() {
               <span className="text-xl">{t.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm text-foreground truncate">{t.title}</p>
-                <p className="text-xs text-muted-foreground">{block ? `${block.name}` : "На весь день"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {block ? `${block.name}` : "На весь день"}
+                  {t.coins ? ` · 🪙 ${t.coins}` : ''}
+                  {t.isOneTime ? ' · Одноразовая' : ''}
+                </p>
               </div>
               <div className="flex gap-1">
                 <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(t)} className="text-accent w-7 h-7 p-0"><Edit2 className="w-3 h-3" /></Button>

@@ -209,8 +209,13 @@ function TasksTab() {
   const [title, setTitle] = useState(""); const [emoji, setEmoji] = useState("📋");
   const [color, setColor] = useState("#3b82f6");
   const [blockId, setBlockId] = useState(""); const [days, setDays] = useState<number[]>([]);
+  const [coins, setCoins] = useState("5");
+  const [isOneTime, setIsOneTime] = useState(false);
 
-  const resetForm = () => { setTitle(""); setEmoji("📋"); setColor("#3b82f6"); setBlockId(""); setDays([]); };
+  const resetForm = () => { 
+    setTitle(""); setEmoji("📋"); setColor("#3b82f6"); setBlockId(""); setDays([]); 
+    setCoins("5"); setIsOneTime(false);
+  };
 
   const taskFormContent = (
     <>
@@ -225,6 +230,10 @@ function TasksTab() {
         </select>
       </div>
       <div className="space-y-2"><label className="text-sm font-medium text-slate-300">Дни недели</label><DayPicker value={days} onChange={setDays} /></div>
+      <FormInput label="Монет за выполнение" value={coins} onChange={setCoins} type="number" />
+      <div className="pt-2 border-t border-slate-800 mt-2">
+        <FormCheckbox label="Одноразовая (исчезнет после выполнения)" checked={isOneTime} onChange={setIsOneTime} />
+      </div>
     </>
   );
 
@@ -252,6 +261,7 @@ function TasksTab() {
               <p className="font-bold text-sm text-slate-200 truncate">{t.title}</p>
               <p className="text-[10px] text-slate-500 font-medium tracking-wide">
                 {blocks.find(b => b.id === t.blockId)?.name || 'На весь день'}
+                {t.coins ? ` · 🪙 ${t.coins}` : ''}
               </p>
             </div>
             <div className="flex gap-1">
@@ -259,15 +269,20 @@ function TasksTab() {
                 <Button size="icon" variant="ghost" onClick={() => moveTaskUp(t.id)} className="w-6 h-6 text-slate-600 hover:text-blue-400"><ArrowUp className="w-3 h-3" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => moveTaskDown(t.id)} className="w-6 h-6 text-slate-600 hover:text-blue-400"><ArrowDown className="w-3 h-3" /></Button>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => { setEditingId(t.id); setTitle(t.title); setEmoji(t.emoji); setBlockId(t.blockId || ""); setDays(t.daysOfWeek); setShowEdit(true); }} className="w-8 h-8 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-4 h-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={() => { 
+                setEditingId(t.id); setTitle(t.title); setEmoji(t.emoji); setColor(t.color || "#3b82f6"); 
+                setBlockId(t.blockId || ""); setDays(t.daysOfWeek || []); 
+                setCoins(String(t.coins || 5)); setIsOneTime(!!t.isOneTime);
+                setShowEdit(true); 
+              }} className="w-8 h-8 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-4 h-4" /></Button>
               <Button size="icon" variant="ghost" onClick={() => { if (confirm("Удалить?")) deleteTask(t.id); }} className="w-8 h-8 text-red-400 hover:bg-red-400/10"><Trash2 className="w-4 h-4" /></Button>
             </div>
           </div>
         ))}
         {tasks.length === 0 && <p className="text-center py-10 text-slate-600 italic">Нет задач</p>}
       </div>
-      <FormModal title="Новая задача" isOpen={showCreate} onClose={() => { setShowCreate(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (title) { addTask({ id: nanoid(), title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay: !blockId, completedDates: {} }); setShowCreate(false); resetForm(); } }} submitText="Создать">{taskFormContent}</FormModal>
-      <FormModal title="Редактировать" isOpen={showEdit} onClose={() => { setShowEdit(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (editingId && title) { updateTask(editingId, { title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay: !blockId }); setShowEdit(false); resetForm(); } }} submitText="Сохранить">{taskFormContent}</FormModal>
+      <FormModal title="Новая задача" isOpen={showCreate} onClose={() => { setShowCreate(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (title) { addTask({ id: nanoid(), title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay: !blockId, completedDates: {}, coins: Number(coins), isOneTime }); setShowCreate(false); resetForm(); } }} submitText="Создать">{taskFormContent}</FormModal>
+      <FormModal title="Редактировать" isOpen={showEdit} onClose={() => { setShowEdit(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (editingId && title) { updateTask(editingId, { title, emoji, color, blockId: blockId || undefined, daysOfWeek: days, isAllDay: !blockId, coins: Number(coins), isOneTime }); setShowEdit(false); resetForm(); } }} submitText="Сохранить">{taskFormContent}</FormModal>
     </div>
   );
 }
