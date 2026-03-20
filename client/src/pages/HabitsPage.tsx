@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, FolderPlus, Clock, Layers, ListChecks } from "lucide-react";
-import { useApp, Habit, HabitFolder, Task } from "@/contexts/AppContext";
+import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, FolderPlus, Clock, Layers, ListChecks, Check } from "lucide-react";
+import { useApp, Habit, HabitFolder, Task, getTodayDateString } from "@/contexts/AppContext";
 import FormModal from "@/components/FormModal";
 import { FormInput, FormCheckbox } from "@/components/FormInputs";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -46,7 +46,7 @@ function DayPicker({ value, onChange }: { value: number[]; onChange: (v: number[
 function HabitsTab() {
   const {
     habits, habitFolders, blocks,
-    addHabit, updateHabit, deleteHabit,
+    addHabit, updateHabit, deleteHabit, completeHabit,
     addHabitFolder, updateHabitFolder, deleteHabitFolder,
     moveHabitUp, moveHabitDown, moveHabitFolderUp, moveHabitFolderDown,
   } = useApp();
@@ -91,7 +91,7 @@ function HabitsTab() {
       coinsPerComplete: parseFloat(coins) || 5,
       completedDates: {}, units: 0,
       coinsPerUnit: parseFloat(coinsPerUnit) || 1,
-      progressUnit, unitsTracking, isOneTime,
+      progressUnit, unitsTracking
     });
     resetForm(); setShowCreate(false);
   };
@@ -101,7 +101,6 @@ function HabitsTab() {
     setFolder(h.folder); setBlockId(h.blockId || ""); setDays(h.daysOfWeek);
     setCoins(String(h.coinsPerComplete)); setUnitsTracking(h.unitsTracking);
     setProgressUnit(h.progressUnit || "units"); setCoinsPerUnit(String(h.coinsPerUnit || 1));
-    setIsOneTime(!!h.isOneTime);
     setShowEdit(true);
   };
 
@@ -111,8 +110,7 @@ function HabitsTab() {
     updateHabit(editingId, {
       name, emoji, color, folder, blockId, daysOfWeek: days,
       coinsPerComplete: parseFloat(coins) || 5,
-      unitsTracking, progressUnit, coinsPerUnit: parseFloat(coinsPerUnit) || 1,
-      isOneTime,
+      unitsTracking, progressUnit, coinsPerUnit: parseFloat(coinsPerUnit) || 1
     });
     setShowEdit(false); resetForm();
   };
@@ -152,9 +150,6 @@ function HabitsTab() {
           <FormInput label="Монет за единицу" value={coinsPerUnit} onChange={setCoinsPerUnit} type="number" placeholder="1" />
         </>
       )}
-      <div className="pt-2 border-t border-border mt-2">
-        <FormCheckbox label="Одноразовая (исчезнет после выполнения)" checked={isOneTime} onChange={setIsOneTime} />
-      </div>
     </>
   );
 
@@ -217,26 +212,56 @@ function HabitsTab() {
                 <div className="divide-y divide-border">
                   {fHabits.length === 0 ? (
                     <div className="px-4 py-3 text-muted-foreground text-sm">Нет привычек</div>
-                  ) : fHabits.map((h) => (
-                    <div key={h.id} className="flex items-center gap-3 px-4 py-3 border-l-4" style={{ borderLeftColor: h.color }}>
-                      <span className="text-xl">{h.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground truncate">{h.name}</p>
-                        <p className="text-xs text-muted-foreground">🔥 {h.streak} · {DAYS_OF_WEEK.filter((d) => h.daysOfWeek.includes(d.id)).map((d) => d.label).join(", ")}</p>
-                        {h.unitsTracking && (
-                          <div className="mt-2 max-w-xs">
-                            <HabitUnitTracker habit={h} />
+                  ) : (
+                    fHabits.map((h: Habit) => {
+                      const completedToday = !!(h.completedDates && h.completedDates[getTodayDateString()]);
+                      return (
+                        <div key={h.id} className="flex flex-col px-4 py-3 border-l-4" style={{ borderLeftColor: h.color }}>
+                          <div className="flex items-center gap-3">
+                            {/* Coin badge LEFT */}
+                            <div
+                              className="flex-shrink-0 flex flex-col items-center justify-center w-10 h-10 rounded-xl text-center"
+                              style={{ backgroundColor: `${h.color}25`, border: `1px solid ${h.color}40` }}
+                            >
+                              <span className="text-[12px] leading-none">🪙</span>
+                              <span className="text-[9px] font-bold text-white leading-tight mt-1">{h.coinsPerComplete}</span>
+                            </div>
+
+                            <span className="text-xl">{h.emoji}</span>
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-foreground truncate">{h.name}</p>
+                              <p className="text-xs text-muted-foreground">🔥 {h.streak} · {DAYS_OF_WEEK.filter((dp: any) => h.daysOfWeek.includes(dp.id)).map((dp: any) => dp.label).join(", ")}</p>
+                              {h.unitsTracking && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  Всего: {h.units} {h.progressUnit || "шт"} · +{h.coinsPerUnit || 1} монет/шт
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" 
+                                onClick={() => completeHabit(h.id, getTodayDateString())} 
+                                className={`${completedToday ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground'} w-8 h-8 p-0 hover:text-green-400`}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => moveHabitUp(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronUp className="w-3 h-3" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => moveHabitDown(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronDown className="w-3 h-3" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(h)} className="text-accent w-7 h-7 p-0"><Edit2 className="w-3 h-3" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Удалить привычку?")) deleteHabit(h.id); }} className="text-destructive w-7 h-7 p-0"><Trash2 className="w-3 h-3" /></Button>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => moveHabitUp(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronUp className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => moveHabitDown(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronDown className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(h)} className="text-accent w-7 h-7 p-0"><Edit2 className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm("Удалить привычку?")) deleteHabit(h.id); }} className="text-destructive w-7 h-7 p-0"><Trash2 className="w-3 h-3" /></Button>
-                      </div>
-                    </div>
-                  ))}
+
+                          {h.unitsTracking && (
+                            <div className="mt-3 pl-[52px]">
+                              <HabitUnitTracker habit={h} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>
