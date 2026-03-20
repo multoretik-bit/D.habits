@@ -840,10 +840,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addUnitsToHabit = (habitId: string, amount: number) => {
     const habit = habits.find((h) => h.id === habitId);
-    if (habit && habit.unitsTracking && amount > 0) {
+    if (habit && amount > 0) {
       const newUnits = habit.units + amount;
       const coinsEarned = (habit.coinsPerUnit || 0) * amount;
-      updateHabit(habitId, { units: newUnits });
+      // Also ensure unitsTracking is true if we're adding units
+      updateHabit(habitId, { units: newUnits, unitsTracking: true });
       if (coinsEarned > 0) {
         addCoins(coinsEarned);
       }

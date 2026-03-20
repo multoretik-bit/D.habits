@@ -227,10 +227,20 @@ function HabitsTab() {
                               <span className="text-[9px] font-bold text-white leading-tight mt-1">{h.coinsPerComplete}</span>
                             </div>
 
-                            <span className="text-xl">{h.emoji}</span>
+                            {/* Emoji/Check completion - SAME AS HOME.TSX */}
+                            <button 
+                              onClick={() => completeHabit(h.id, getTodayDateString())}
+                              className={`w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl text-xl transition-all
+                                ${completedToday ? "bg-slate-800 text-green-500" : "bg-opacity-20"} hover:scale-105 active:scale-95`}
+                              style={{ backgroundColor: completedToday ? undefined : `${h.color}22` }}
+                            >
+                              {completedToday ? <Check className="w-5 h-5" /> : h.emoji}
+                            </button>
                             
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-foreground truncate">{h.name}</p>
+                              <p className={`font-medium text-sm truncate ${completedToday ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                                {h.name}
+                              </p>
                               <p className="text-xs text-muted-foreground">🔥 {h.streak} · {DAYS_OF_WEEK.filter((dp: any) => h.daysOfWeek.includes(dp.id)).map((dp: any) => dp.label).join(", ")}</p>
                               {h.unitsTracking && (
                                 <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -240,12 +250,6 @@ function HabitsTab() {
                             </div>
 
                             <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" 
-                                onClick={() => completeHabit(h.id, getTodayDateString())} 
-                                className={`${completedToday ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground'} w-8 h-8 p-0 hover:text-green-400`}
-                              >
-                                <Check className="w-4 h-4" />
-                              </Button>
                               <Button size="sm" variant="ghost" onClick={() => moveHabitUp(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronUp className="w-3 h-3" /></Button>
                               <Button size="sm" variant="ghost" onClick={() => moveHabitDown(h.id)} className="text-muted-foreground w-7 h-7 p-0"><ChevronDown className="w-3 h-3" /></Button>
                               <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(h)} className="text-accent w-7 h-7 p-0"><Edit2 className="w-3 h-3" /></Button>
@@ -253,11 +257,9 @@ function HabitsTab() {
                             </div>
                           </div>
 
-                          {h.unitsTracking && (
-                            <div className="mt-3 pl-[52px]">
-                              <HabitUnitTracker habit={h} />
-                            </div>
-                          )}
+                          <div className="mt-3 pl-[52px]">
+                            <HabitUnitTracker habit={h} alwaysShow={true} />
+                          </div>
                         </div>
                       );
                     })

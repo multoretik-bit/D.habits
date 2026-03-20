@@ -8,11 +8,11 @@ interface HabitUnitTrackerProps {
   compact?: boolean;
 }
 
-export default function HabitUnitTracker({ habit, compact = false }: HabitUnitTrackerProps) {
+export default function HabitUnitTracker({ habit, compact = false, alwaysShow = false }: HabitUnitTrackerProps & { alwaysShow?: boolean }) {
   const { addUnitsToHabit } = useApp();
   const [amount, setAmount] = useState(1);
 
-  if (!habit.unitsTracking) return null;
+  if (!habit.unitsTracking && !alwaysShow) return null;
 
   return (
     <div
