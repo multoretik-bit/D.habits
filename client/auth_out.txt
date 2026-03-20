@@ -17,3 +17,18 @@ PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 **********************
 Транскрибирование запущено, выходной файл auth_out.txt
+? Authenticate Git with you
+r GitHub credentials? Yes
+s? (Y/n) Y
+! First copy your one-time
+code: FB34-9BC7
+Press Enter to open https:/
+/github.com/login/device in
+ your browser...
+PS>TerminatingError(): "Конвейерная обработка была остановлена."
+>> TerminatingError(): "Конвейерная обработка была остановлена."
+]633;D;1]633;A]633;P;Cwd=C:\x5cUsers\x5cТИВИЩКА\x5cDownloads\x5cdhabits\x5cclientPS C:\Users\ТИВИЩКА\Downloads\dhabits\client> ]633;B
+PS>cd ../ ; git push --force -u origin main:main ; git push --force -u origin main:master
+
+
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cТИВИЩКА\x5cDownloads\x5cdhabitsPS C:\Users\ТИВИЩКА\Downloads\dhabits> ]633;B
