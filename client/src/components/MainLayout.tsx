@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Target, PlusCircle, ShoppingCart, LogOut } from "lucide-react";
+import { Home, Target, PlusCircle, ShoppingCart, LogOut, Settings } from "lucide-react";
 import CoinDisplay from "./CoinDisplay";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -31,14 +31,22 @@ export default function MainLayout({ children, onSignOut }: MainLayoutProps) {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-20 bg-[#060c1c]/90 backdrop-blur-md border-b border-blue-900/40 flex items-center justify-between px-4 py-4 shadow-sm">
         <span className="font-extrabold text-xl text-blue-50 tracking-tight">dHabits</span>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-blue-950/50 border border-blue-900/60 px-3 py-1.5 rounded-full shadow-inner">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-blue-950/40 border border-blue-900/40 px-3 py-1.5 rounded-full shadow-inner mr-1">
             <CoinDisplay amount={coins} size="sm" showLabel={true} />
           </div>
+          <Link href="/settings">
+            <button
+              title="Настройки"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-blue-300 hover:bg-blue-400/10 transition-all border border-transparent hover:border-blue-500/20"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </Link>
           <button
             onClick={handleSignOut}
-            title="Выйти из аккаунта"
-            className="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
+            title="Выйти"
+            className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-500/20"
           >
             <LogOut className="w-4 h-4" />
           </button>
