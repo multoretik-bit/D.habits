@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { storage } from "@/lib/storage";
+import { storage, StorageData } from "@/lib/storage";
 import { defaultShopItems } from "@/lib/defaultShopItems";
 import { supabase } from "@/lib/supabase";
 import { syncSave, syncLoad } from "@/lib/sync";
@@ -255,6 +255,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [characterState, setCharacterState] = useState<CharacterState>({});
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Refs for sync management
+  const isInitialLoadRef = React.useRef(true);
+  const isRemoteUpdateRef = React.useRef(false);
+  const syncTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const savedData = storage.getData();
@@ -307,6 +312,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             
             if (isLocalEmpty || !localLastUpdated || (remoteLastUpdated && new Date(remoteLastUpdated) > new Date(localLastUpdated))) {
               console.log("Sync: Applying remote data (newer or local empty)");
+              isRemoteUpdateRef.current = true;
               setCoins(remoteData.coins || 0);
               setHabits((remoteData.habits || []).map(migrateHabit));
               setBlocks(remoteData.blocks || []);
@@ -318,6 +324,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setCharacterState(remoteData.characterState || {});
               setTasks(remoteData.tasks || []);
               storage.saveData(remoteData);
+              setTimeout(() => { isRemoteUpdateRef.current = false; }, 100);
             }
           }
         } catch (err) {
@@ -341,6 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 const currentData = storage.getData();
                 if (new Date(newData.lastUpdated) > new Date(currentData.lastUpdated || 0)) {
                   console.log("Sync: Received newer remote data via real-time channel");
+                  isRemoteUpdateRef.current = true;
                   setCoins(newData.coins || 0);
                   setHabits((newData.habits || []).map(migrateHabit));
                   setBlocks(newData.blocks || []);
@@ -352,6 +360,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   setCharacterState(newData.characterState || {});
                   setTasks(newData.tasks || []);
                   storage.saveData(newData);
+                  setTimeout(() => { isRemoteUpdateRef.current = false; }, 100);
                 }
               }
             }
@@ -359,6 +368,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .subscribe();
       }
       setIsSyncing(false);
+      isInitialLoadRef.current = false;
     };
 
     startSync();
@@ -369,6 +379,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, []);
+
+  // Centralized Sync Effect
+  useEffect(() => {
+    if (isInitialLoadRef.current || isRemoteUpdateRef.current) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+
+    syncTimerRef.current = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const data: StorageData = {
+        coins,
+        habits,
+        blocks,
+        habitFolders,
+        goals,
+        goalFolders,
+        shopItems,
+        shopFolders,
+        character: {},
+        characterState,
+        tasks,
+        progress: {},
+        streaks: {},
+        shop: [],
+        folders: [],
+        lastUpdated: new Date().toISOString(),
+      };
+      
+      console.log("Sync: Auto-saving local changes to cloud...");
+      storage.saveData(data);
+      await syncSave(session.user.id, data);
+    }, 500); // 0.5 second debounce
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks]);
 
   const forceSyncFromCloud = async () => {
     setIsSyncing(true);
@@ -408,45 +457,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveAllData = (
-    newCoins: number,
-    newHabits: Habit[],
-    newBlocks: HabitBlock[],
-    newHabitFolders: HabitFolder[],
-    newGoals: Goal[],
-    newGoalFolders: GoalFolder[],
-    newShopItems: ShopItem[],
-    newShopFolders: ShopFolder[],
-    newCharacterState: CharacterState,
-    newTasks: Task[]
+    coinsValue: number,
+    habitsValue: Habit[],
+    blocksValue: HabitBlock[],
+    habitFoldersValue: HabitFolder[],
+    goalsValue: Goal[],
+    goalFoldersValue: GoalFolder[],
+    shopItemsValue: ShopItem[],
+    shopFoldersValue: ShopFolder[],
+    characterStateValue: CharacterState,
+    tasksValue: Task[]
   ) => {
-    const dataObj = {
-      coins: newCoins,
-      habits: newHabits,
-      blocks: newBlocks,
-      habitFolders: newHabitFolders,
-      goals: newGoals,
-      goalFolders: newGoalFolders,
-      shopItems: newShopItems,
-      shopFolders: newShopFolders,
-      characterState: newCharacterState,
-      tasks: newTasks,
+    const data: StorageData = {
+      coins: coinsValue,
+      habits: habitsValue,
+      blocks: blocksValue,
+      habitFolders: habitFoldersValue,
+      goals: goalsValue,
+      goalFolders: goalFoldersValue,
+      shopItems: shopItemsValue,
+      shopFolders: shopFoldersValue,
+      character: {},
+      characterState: characterStateValue,
+      tasks: tasksValue,
       progress: {},
       streaks: {},
-      folders: [],
       shop: [],
-      character: {},
+      folders: [],
       lastUpdated: new Date().toISOString(),
     };
-    storage.saveData(dataObj);
-    
-    // Skip remote save if we are currently downloading remote data
-    if (isSyncing) return;
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await syncSave(session.user.id, dataObj);
-      }
-    });
+    storage.saveData(data);
   };
 
   const syncWithCloud = async () => {
