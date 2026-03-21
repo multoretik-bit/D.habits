@@ -6,6 +6,7 @@ import FormModal from "@/components/FormModal";
 import { FormInput, FormCheckbox } from "@/components/FormInputs";
 import EmojiPicker from "@/components/EmojiPicker";
 import AdvancedColorPicker from "@/components/AdvancedColorPicker";
+import HabitUnitTracker from "@/components/HabitUnitTracker";
 import { nanoid } from "nanoid";
 
 const DAYS_OF_WEEK = [
@@ -166,6 +167,11 @@ function HabitsTab() {
                       <p className="text-[10px] text-slate-500 font-medium tracking-wide">
                         🔥 {h.streak} · {DAYS_OF_WEEK.filter(d => h.daysOfWeek.includes(d.id)).map(d => d.label).join(", ")}
                       </p>
+                      {h.unitsTracking && (
+                         <div className="mt-2">
+                            <HabitUnitTracker habit={h} compact={true} alwaysShow={true} />
+                         </div>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <div className="flex flex-col gap-0.5 mr-1">
@@ -390,9 +396,9 @@ function BlocksTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState(""); const [startTime, setStartTime] = useState("09:00"); const [endTime, setEndTime] = useState("10:00");
-  const [colorIndex, setColorIndex] = useState(0);
+  const [color, setColor] = useState("#3b82f6");
 
-  const resetForm = () => { setName(""); setStartTime("09:00"); setEndTime("10:00"); setColorIndex(0); };
+  const resetForm = () => { setName(""); setStartTime("09:00"); setEndTime("10:00"); setColor("#3b82f6"); };
 
   const blockFormContent = (
     <>
@@ -409,17 +415,7 @@ function BlocksTab() {
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">Цвет блока</label>
-        <div className="flex flex-wrap gap-2">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setColorIndex(i)}
-              className={`w-8 h-8 rounded-full border-2 transition-all ${colorIndex === i ? "scale-110 border-white shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`}
-              style={{ backgroundColor: i < 8 ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][i] : "#fff" }}
-            />
-          ))}
-        </div>
+        <AdvancedColorPicker value={color} onChange={setColor} />
       </div>
     </>
   );
@@ -434,8 +430,8 @@ function BlocksTab() {
       <div className="space-y-3">
         {blocks.map(b => (
           <div key={b.id} className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-2xl border border-slate-800/80">
-            <div className="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] + '25' : 'rgba(148, 163, 184, 0.1)' }}>
-              <Layers className="w-5 h-5" style={{ color: b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] : "#94a3b8" }} />
+            <div className="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: b.color ? b.color + '25' : (b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] + '25' : 'rgba(148, 163, 184, 0.1)') }}>
+              <Layers className="w-5 h-5" style={{ color: b.color ? b.color : (b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] : "#94a3b8") }} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm text-slate-200 truncate">{b.name}</p>
@@ -446,15 +442,15 @@ function BlocksTab() {
                 <Button size="icon" variant="ghost" onClick={() => moveBlockUp(b.id)} className="w-6 h-6 text-slate-600 hover:text-blue-400"><ArrowUp className="w-3 h-3" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => moveBlockDown(b.id)} className="w-6 h-6 text-slate-600 hover:text-blue-400"><ArrowDown className="w-3 h-3" /></Button>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => { setEditingId(b.id); setName(b.name); setStartTime(b.startTime||""); setEndTime(b.endTime||""); setColorIndex(b.colorIndex || 0); setShowEdit(true); }} className="w-8 h-8 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-4 h-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={() => { setEditingId(b.id); setName(b.name); setStartTime(b.startTime||""); setEndTime(b.endTime||""); setColor(b.color || (b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] : "#3b82f6")); setShowEdit(true); }} className="w-8 h-8 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-4 h-4" /></Button>
               <Button size="icon" variant="ghost" onClick={() => { if (confirm("Удалить?")) deleteBlock(b.id); }} className="w-8 h-8 text-red-400 hover:bg-red-400/10"><Trash2 className="w-4 h-4" /></Button>
             </div>
           </div>
         ))}
         {blocks.length === 0 && <p className="text-center py-10 text-slate-600 italic">Нет блоков</p>}
       </div>
-      <FormModal title="Новый блок" isOpen={showCreate} onClose={() => { setShowCreate(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (name) { addBlock({ id: nanoid(), name, habits: [], collapsed: false, startTime, endTime, colorIndex }); setShowCreate(false); resetForm(); } }} submitText="Создать">{blockFormContent}</FormModal>
-      <FormModal title="Редактировать" isOpen={showEdit} onClose={() => { setShowEdit(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (editingId && name) { updateBlock(editingId, { name, startTime, endTime, colorIndex }); setShowEdit(false); resetForm(); } }} submitText="Сохранить">{blockFormContent}</FormModal>
+      <FormModal title="Новый блок" isOpen={showCreate} onClose={() => { setShowCreate(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (name) { addBlock({ id: nanoid(), name, habits: [], collapsed: false, startTime, endTime, color }); setShowCreate(false); resetForm(); } }} submitText="Создать">{blockFormContent}</FormModal>
+      <FormModal title="Редактировать" isOpen={showEdit} onClose={() => { setShowEdit(false); resetForm(); }} onSubmit={(e) => { e.preventDefault(); if (editingId && name) { updateBlock(editingId, { name, startTime, endTime, color }); setShowEdit(false); resetForm(); } }} submitText="Сохранить">{blockFormContent}</FormModal>
     </div>
   );
 }

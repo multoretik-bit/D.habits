@@ -16,9 +16,10 @@ export function StreakFlames({ streak }: { streak: number }) {
 interface HabitRowProps {
   habit: Habit;
   dateStr: string;
+  hideUnitTracker?: boolean;
 }
 
-export default function HabitRow({ habit, dateStr }: HabitRowProps) {
+export default function HabitRow({ habit, dateStr, hideUnitTracker }: HabitRowProps) {
   const { completeHabit, moveHabitUp, moveHabitDown } = useApp();
   const completed = !!(habit.completedDates && habit.completedDates[dateStr]);
 
@@ -78,8 +79,8 @@ export default function HabitRow({ habit, dateStr }: HabitRowProps) {
         )}
       </button>
 
-      {/* Unit tracker (shown when not completed) */}
-      {habit.unitsTracking && !completed && (
+      {/* Unit tracker (shown when not completed and not hidden by prop) */}
+      {habit.unitsTracking && !completed && !hideUnitTracker && (
         <div className="px-3 pb-3">
           <HabitUnitTracker habit={habit} />
         </div>

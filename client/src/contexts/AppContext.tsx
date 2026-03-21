@@ -59,6 +59,7 @@ export interface HabitBlock {
   startTime?: string; // "HH:MM"
   endTime?: string;   // "HH:MM"
   colorIndex?: number;
+  color?: string;
 }
 
 export interface Task {

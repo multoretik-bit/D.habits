@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApp, Habit, Task, getCurrentBlock, getTodayDateString } from "@/contexts/AppContext";
+import { useApp, Habit, Task, HabitBlock, getCurrentBlock, getTodayDateString } from "@/contexts/AppContext";
 import { Clock, Check, Plus, Minus, ArrowUp, ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
 import HabitRow from "@/components/HabitRow";
@@ -12,6 +12,13 @@ function timeToMinutes(t: string | undefined): number {
   if (!t) return 0;
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
+}
+
+function getBlockColor(b: HabitBlock | null | undefined): string | null {
+  if (!b) return null;
+  if (b.color) return b.color;
+  if (b.colorIndex !== undefined) return ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex];
+  return null;
 }
 
 function TaskRow({ task, dateStr }: { task: Task; dateStr: string }) {
@@ -104,9 +111,7 @@ export default function Home() {
     t => t.isAllDay && (t.daysOfWeek.length === 0 || t.daysOfWeek.includes(dayOfWeek))
   );
 
-  const blockColor = activeBlock?.colorIndex !== undefined 
-    ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex] 
-    : null;
+  const blockColor = getBlockColor(activeBlock);
 
   return (
     <div 
@@ -130,16 +135,16 @@ export default function Home() {
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="border rounded-3xl p-5 shadow-lg relative overflow-hidden"
             style={{ 
-              backgroundColor: activeBlock.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex] + '20' : 'rgba(30, 58, 138, 0.4)',
-              borderColor: activeBlock.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex] + '40' : 'rgba(30, 58, 138, 0.5)'
+              backgroundColor: blockColor ? `${blockColor}20` : 'rgba(30, 58, 138, 0.4)',
+              borderColor: blockColor ? `${blockColor}40` : 'rgba(30, 58, 138, 0.5)'
             }}
           >
             <div 
               className="absolute -top-10 -right-10 w-32 h-32 blur-[50px] rounded-full opacity-30" 
-              style={{ backgroundColor: activeBlock.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex] : '#3b82f6' }}
+              style={{ backgroundColor: blockColor || '#3b82f6' }}
             />
             <h1 className="text-2xl font-extrabold text-white mb-1 tracking-tight truncate">{activeBlock.name}</h1>
-            <div className="flex items-center gap-1.5 text-sm font-medium mb-4" style={{ color: activeBlock.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex] : '#93c5fd' }}>
+            <div className="flex items-center gap-1.5 text-sm font-medium mb-4" style={{ color: blockColor || '#93c5fd' }}>
               <Clock className="w-4 h-4" />
               <span>с {formatTime(activeBlock.startTime)} до {formatTime(activeBlock.endTime)}</span>
             </div>
@@ -154,8 +159,8 @@ export default function Home() {
                     className="absolute top-0 left-0 h-full rounded-full transition-all duration-1000"
                     style={{ 
                       width: `${blockProgress}%`,
-                      background: activeBlock.colorIndex !== undefined 
-                        ? `linear-gradient(to right, ${["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][activeBlock.colorIndex]}, #fff)` 
+                      background: blockColor 
+                        ? `linear-gradient(to right, ${blockColor}, #fff)` 
                         : 'linear-gradient(to right, #2563eb, #22d3ee)' 
                     }}
                   />
@@ -186,7 +191,7 @@ export default function Home() {
               Привычки
             </h3>
             {blockHabits.length > 0 ? (
-              blockHabits.map(h => <HabitRow key={h.id} habit={h} dateStr={dateStr} />)
+              blockHabits.map(h => <HabitRow key={h.id} habit={h} dateStr={dateStr} hideUnitTracker={true} />)
             ) : (
               <div className="text-xs text-slate-600 text-center py-6 bg-slate-900/20 rounded-3xl border border-slate-800/40 italic">Пусто</div>
             )}
@@ -223,7 +228,7 @@ export default function Home() {
             На весь день
           </h3>
         )}
-        {allDayHabits.map(h => <HabitRow key={h.id} habit={h} dateStr={dateStr} />)}
+        {allDayHabits.map(h => <HabitRow key={h.id} habit={h} dateStr={dateStr} hideUnitTracker={true} />)}
         {allDayTasks.map(t => <TaskRow key={t.id} task={t} dateStr={dateStr} />)}
       </div>
     </div>
