@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useApp, Habit } from "@/contexts/AppContext";
 import { Check, ArrowUp, ArrowDown } from "lucide-react";
 import HabitUnitTracker from "./HabitUnitTracker";
@@ -22,6 +23,7 @@ interface HabitRowProps {
 export default function HabitRow({ habit, dateStr, hideUnitTracker }: HabitRowProps) {
   const { completeHabit, moveHabitUp, moveHabitDown } = useApp();
   const completed = !!(habit.completedDates && habit.completedDates[dateStr]);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div
@@ -60,7 +62,10 @@ export default function HabitRow({ habit, dateStr, hideUnitTracker }: HabitRowPr
 
         {/* Name + streak */}
         <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-sm leading-snug ${completed ? "line-through text-slate-500" : "text-slate-100"}`}>
+          <p 
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className={`font-semibold text-sm leading-snug cursor-pointer ${completed ? "line-through text-slate-500" : "text-slate-100"} ${expanded ? "" : "truncate"}`}
+          >
             {habit.name}
           </p>
           <StreakFlames streak={habit.streak} />

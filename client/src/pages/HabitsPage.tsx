@@ -57,6 +57,8 @@ function HabitsTab() {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showEditFolder, setShowEditFolder] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   // Habit form
   const [name, setName] = useState("");
@@ -237,8 +239,8 @@ function HabitsTab() {
                               {completedToday ? <Check className="w-5 h-5" /> : h.emoji}
                             </button>
                             
-                            <div className="flex-1 min-w-0">
-                              <p className={`font-medium text-sm truncate ${completedToday ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleName(h.id); }}>
+                              <p className={`font-medium text-sm ${expandedItems[h.id] ? "" : "truncate"} ${completedToday ? "text-muted-foreground line-through" : "text-foreground"}`}>
                                 {h.name}
                               </p>
                               <p className="text-xs text-muted-foreground">🔥 {h.streak} · {DAYS_OF_WEEK.filter((dp: any) => h.daysOfWeek.includes(dp.id)).map((dp: any) => dp.label).join(", ")}</p>
@@ -301,7 +303,10 @@ function TasksTab() {
   const { tasks, blocks, addTask, updateTask, deleteTask } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const [title, setTitle] = useState("");
   const [emoji, setEmoji] = useState("📋");
@@ -386,8 +391,8 @@ function TasksTab() {
           return (
             <div key={t.id} className="flex items-center gap-3 px-4 py-3 bg-card rounded-xl border border-border">
               <span className="text-xl">{t.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-foreground truncate">{t.title}</p>
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleName(t.id); }}>
+                <p className={`font-medium text-sm text-foreground ${expandedItems[t.id] ? "" : "truncate"}`}>{t.title}</p>
                 <p className="text-xs text-muted-foreground">
                   {block ? `${block.name}` : "На весь день"}
                   {t.coins ? (
@@ -418,7 +423,10 @@ function BlocksTab() {
   const { blocks, addBlock, updateBlock, deleteBlock, moveBlockUp, moveBlockDown } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const [name, setName] = useState("");
   const [startTime, setStartTime] = useState("09:00");
@@ -499,8 +507,8 @@ function BlocksTab() {
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] + '25' : 'rgba(148, 163, 184, 0.1)' }}>
                <Layers className="w-4 h-4" style={{ color: b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] : "#94a3b8" }} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-foreground truncate">{b.name}</p>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleName(b.id); }}>
+              <p className={`font-medium text-sm text-foreground ${expandedItems[b.id] ? "" : "truncate"}`}>{b.name}</p>
               {b.startTime && b.endTime ? (
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Clock className="w-3 h-3" /> {b.startTime} — {b.endTime}

@@ -26,6 +26,8 @@ export default function GoalsPage() {
   const [showUpdateProgress, setShowUpdateProgress] = useState(false);
   const [updatingGoalId, setUpdatingGoalId] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState("");
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const dateStr = getTodayDateString();
   const now = new Date();
@@ -95,16 +97,19 @@ export default function GoalsPage() {
                     >
                       {goal.emoji || "🎯"}
                     </span>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleName(goal.id); }}>
                       <div className="flex items-center gap-2 mb-0.5">
-                        <h4 className={`font-bold text-slate-100 truncate ${goal.completed ? "line-through text-slate-400" : ""}`}>
+                        <h4 className={`font-bold text-slate-100 ${expandedItems[goal.id] ? "" : "truncate"} ${goal.completed ? "line-through text-slate-400" : ""}`}>
                           {goal.name}
                         </h4>
                         {goal.completed && (
                           <span className="text-[9px] font-bold uppercase tracking-widest bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full shrink-0">Завершено</span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-medium truncate uppercase tracking-tight">
+                      <p 
+                        className={`text-[10px] text-slate-500 font-medium uppercase tracking-tight mt-1 ${expandedItems[goal.id + '_desc'] ? "" : "truncate"}`}
+                        onClick={(e) => { e.stopPropagation(); toggleName(goal.id + '_desc'); }}
+                      >
                         {goal.description || "Нет описания"}
                       </p>
                     </div>

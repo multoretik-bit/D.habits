@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit2, FolderPlus, ListChecks, Target, Layers, Check, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Edit2, FolderPlus, ListChecks, Target, Layers, Check, ArrowUp, ArrowDown, ChevronUp, ChevronDown } from "lucide-react";
 import { useApp, Habit, HabitFolder, Task, Goal, GoalFolder, moveHabitUp, moveHabitDown } from "@/contexts/AppContext";
 import FormModal from "@/components/FormModal";
 import { FormInput, FormCheckbox } from "@/components/FormInputs";
@@ -49,13 +49,15 @@ function UnifiedCoinBadge({ coins, color, label }: { coins: number; color: strin
 
 // ─── HABITS ───────────────────────────────────────────────────────────────
 function HabitsTab() {
-  const { habits, habitFolders, blocks, addHabit, updateHabit, deleteHabit, addHabitFolder, updateHabitFolder, deleteHabitFolder, moveHabitUp, moveHabitDown, moveHabitFolderUp, moveHabitFolderDown } = useApp();
+  const { habits, habitFolders, blocks, addHabit, updateHabit, deleteHabit, addHabitFolder, updateHabitFolder, deleteHabitFolder, moveHabitUp, moveHabitDown, moveHabitFolderUp, moveHabitFolderDown, toggleHabitFolderCollapse } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showEditFolder, setShowEditFolder] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   // Form states
   const [name, setName] = useState(""); const [emoji, setEmoji] = useState("🎯"); const [color, setColor] = useState("#3b82f6");
@@ -133,20 +135,29 @@ function HabitsTab() {
           const fHabits = habits.filter(h => h.folder === f.id);
           return (
             <div key={f.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-5 py-3 bg-slate-800/30 border-b border-slate-800/40">
+              <div 
+                className="flex items-center justify-between px-5 py-3 bg-slate-800/30 border-b border-slate-800/40 cursor-pointer transition-colors hover:bg-slate-800/50"
+                onClick={() => toggleHabitFolderCollapse(f.id)}
+              >
                 <div className="flex items-center gap-3 text-slate-300 font-bold uppercase text-[11px] tracking-wider">
                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
                    {f.emoji || "📁"} {f.name} <span className="text-slate-500 font-medium">({fHabits.length})</span>
                 </div>
-                {f.id !== "general" && (
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => moveHabitFolderUp(f.id)} className="w-7 h-7 text-slate-500 hover:text-blue-400"><ArrowUp className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => moveHabitFolderDown(f.id)} className="w-7 h-7 text-slate-500 hover:text-blue-400"><ArrowDown className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { setEditingFolderId(f.id); setFolderName(f.name); setFolderColor(f.color); setFolderEmoji(f.emoji || "📁"); setShowEditFolder(true); }} className="w-7 h-7 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { if (confirm("Удалить?")) { habits.filter((h) => h.folder === f.id).forEach((h) => updateHabit(h.id, { folder: "general" })); deleteHabitFolder(f.id); } }} className="w-7 h-7 text-red-400 hover:bg-red-400/10"><Trash2 className="w-3.5 h-3.5" /></Button>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  {f.id !== "general" && (
+                    <>
+                      <Button size="icon" variant="ghost" onClick={() => moveHabitFolderUp(f.id)} className="w-7 h-7 text-slate-500 hover:text-blue-400"><ArrowUp className="w-3.5 h-3.5" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => moveHabitFolderDown(f.id)} className="w-7 h-7 text-slate-500 hover:text-blue-400"><ArrowDown className="w-3.5 h-3.5" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { setEditingFolderId(f.id); setFolderName(f.name); setFolderColor(f.color); setFolderEmoji(f.emoji || "📁"); setShowEditFolder(true); }} className="w-7 h-7 text-blue-400 hover:bg-blue-400/10"><Edit2 className="w-3.5 h-3.5" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Удалить?")) { habits.filter((h) => h.folder === f.id).forEach((h) => updateHabit(h.id, { folder: "general" })); deleteHabitFolder(f.id); } }} className="w-7 h-7 text-red-400 hover:bg-red-400/10"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </>
+                  )}
+                  <div className="text-slate-500 ml-2">
+                    {f.collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                   </div>
-                )}
+                </div>
               </div>
+              {!f.collapsed && (
               <div className="p-3 space-y-2">
                 {fHabits.length === 0 && <p className="text-xs text-slate-600 text-center py-4 italic">Пусто</p>}
                 {fHabits.map(h => (
@@ -162,8 +173,8 @@ function HabitsTab() {
                     >
                       {h.emoji}
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-slate-100 truncate">{h.name}</p>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleName(h.id)}>
+                      <p className={`font-bold text-sm text-slate-100 ${expandedItems[h.id] ? "" : "truncate"}`}>{h.name}</p>
                       <p className="text-[10px] text-slate-500 font-medium tracking-wide">
                         🔥 {h.streak} · {DAYS_OF_WEEK.filter(d => h.daysOfWeek.includes(d.id)).map(d => d.label).join(", ")}
                       </p>
@@ -192,6 +203,7 @@ function HabitsTab() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           );
         })}
@@ -211,6 +223,8 @@ function TasksTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const [title, setTitle] = useState(""); const [emoji, setEmoji] = useState("📋");
   const [color, setColor] = useState("#3b82f6");
@@ -263,8 +277,8 @@ function TasksTab() {
             >
               {t.emoji || "📋"}
             </span>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-slate-200 truncate">{t.title}</p>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleName(t.id)}>
+              <p className={`font-bold text-sm text-slate-200 ${expandedItems[t.id] ? "" : "truncate"}`}>{t.title}</p>
               <p className="text-[10px] text-slate-500 font-medium tracking-wide">
                 {blocks.find(b => b.id === t.blockId)?.name || 'На весь день'}
                 {t.coins ? (
@@ -299,10 +313,12 @@ function TasksTab() {
 
 // ─── GOALS ────────────────────────────────────────────────────────────────
 function GoalsTab() {
-  const { goals, goalFolders, addGoal, updateGoal, deleteGoal, addGoalFolder } = useApp();
+  const { goals, goalFolders, addGoal, updateGoal, deleteGoal, addGoalFolder, toggleGoalFolderCollapse, moveGoalFolderUp, moveGoalFolderDown } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const [name, setName] = useState(""); const [desc, setDesc] = useState(""); const [target, setTarget] = useState("100"); 
   const [color, setColor] = useState("#8b5cf6"); const [emoji, setEmoji] = useState("🎯"); const [folder, setFolder] = useState("general");
@@ -342,12 +358,23 @@ function GoalsTab() {
           const fGoals = goals.filter(g => g.folder === f.id);
           return (
             <div key={f.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
-               <div className="flex items-center justify-between px-5 py-3 bg-slate-800/30 border-b border-slate-800/40">
+              <div 
+                className="flex items-center justify-between px-5 py-3 bg-slate-800/30 border-b border-slate-800/40 cursor-pointer transition-colors hover:bg-slate-800/50"
+                onClick={() => toggleGoalFolderCollapse(f.id)}
+              >
                 <div className="flex items-center gap-3 text-slate-300 font-bold uppercase text-[11px] tracking-wider">
                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
                    {f.emoji || "🏆"} {f.name} <span className="text-slate-500 font-medium">({fGoals.length})</span>
                 </div>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button size="icon" variant="ghost" onClick={() => moveGoalFolderUp(f.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowUp className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => moveGoalFolderDown(f.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowDown className="w-4 h-4" /></Button>
+                  <div className="text-slate-500 ml-2">
+                    {f.collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </div>
+                </div>
               </div>
+              {!f.collapsed && (
               <div className="p-3 space-y-2">
                 {fGoals.length === 0 && <p className="text-xs text-slate-600 text-center py-4 italic">Пусто</p>}
                 {fGoals.map(g => (
@@ -363,8 +390,8 @@ function GoalsTab() {
                     >
                       {g.emoji}
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-slate-100 truncate">{g.name}</p>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleName(g.id)}>
+                      <p className={`font-bold text-sm text-slate-100 ${expandedItems[g.id] ? "" : "truncate"}`}>{g.name}</p>
                       <p className="text-[10px] text-slate-500 font-medium tracking-wide">
                         Цель: {g.targetValue} · Сейчас: {g.currentValue}
                       </p>
@@ -381,6 +408,7 @@ function GoalsTab() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           );
         })}
@@ -398,6 +426,8 @@ function BlocksTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const toggleName = (id: string) => setExpandedItems(p => ({...p, [id]: !p[id]}));
 
   const [name, setName] = useState(""); const [startTime, setStartTime] = useState("09:00"); const [endTime, setEndTime] = useState("10:00");
   const [color, setColor] = useState("#3b82f6");
@@ -437,8 +467,8 @@ function BlocksTab() {
             <div className="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: b.color ? b.color + '25' : (b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] + '25' : 'rgba(148, 163, 184, 0.1)') }}>
               <Layers className="w-5 h-5" style={{ color: b.color ? b.color : (b.colorIndex !== undefined ? ["#00d9ff", "#0066ff", "#cc00ff", "#00cc00", "#ffcc00", "#ff0000", "#ff00ff", "#ff6600"][b.colorIndex] : "#94a3b8") }} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-slate-200 truncate">{b.name}</p>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleName(b.id)}>
+              <p className={`font-bold text-sm text-slate-200 ${expandedItems[b.id] ? "" : "truncate"}`}>{b.name}</p>
               <p className="text-[10px] text-slate-500 font-medium tracking-wide">{b.startTime} - {b.endTime}</p>
             </div>
             <div className="flex gap-1">
