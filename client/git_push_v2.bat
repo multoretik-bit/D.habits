@@ -1,0 +1,9 @@
+@echo off
+echo Adding changes...
+git add .
+echo Committing changes...
+git commit -m "Refined AppContext, added custom colors, mobile layout optimizations, and habit grouping in goals"
+echo Pushing to GitHub...
+git push
+echo Done!
+pause

@@ -16,6 +16,7 @@ export interface StorageData {
   character: Record<string, any>;
   characterState?: Record<string, any>;
   tasks?: any[];
+  customColors?: string[];
   lastUpdated: string;
 }
 

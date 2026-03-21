@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Target, ArrowUp, ArrowDown, LayoutGrid, ListTodo } from "lucide-react";
-import { useApp, Goal, getTodayDateString } from "@/contexts/AppContext";
+import { useApp, Goal, getTodayDateString, HabitFolder, Habit } from "@/contexts/AppContext";
 import FormModal from "@/components/FormModal";
 import { FormInput } from "@/components/FormInputs";
 import HabitRow from "@/components/HabitRow";
@@ -19,7 +19,7 @@ function UnifiedCoinBadge({ coins, color, label }: { coins: number; color: strin
 }
 
 export default function GoalsPage() {
-  const { goals, goalFolders, habits, updateGoal, toggleGoalFolderCollapse, moveGoalUp, moveGoalDown, moveGoalFolderUp, moveGoalFolderDown } = useApp();
+  const { goals, goalFolders, habits, habitFolders, updateGoal, toggleGoalFolderCollapse, toggleHabitFolderCollapse, moveGoalUp, moveGoalDown, moveGoalFolderUp, moveGoalFolderDown } = useApp();
   const [activeTab, setActiveTab] = useState<'goals' | 'habits'>('goals');
 
   // Progress update state
@@ -54,10 +54,10 @@ export default function GoalsPage() {
   };
 
   const habitsForToday = useMemo(() => {
-    return habits.filter(h => h.daysOfWeek.includes(dayOfWeek));
+    return habits.filter((h: Habit) => h.daysOfWeek.includes(dayOfWeek));
   }, [habits, dayOfWeek]);
 
-  const generalGoals = goals.filter((g) => g.folder === "general");
+  const generalGoals = goals.filter((g: Goal) => g.folder === "general");
   const hasGeneralGoals = generalGoals.length > 0;
 
   const renderGoalsItems = (folderGoals: Goal[]) => (
@@ -70,9 +70,9 @@ export default function GoalsPage() {
           const progress = range > 0 ? ((goal.currentValue - goal.startValue) / range) * 100 : 0;
           const clampedProgress = Math.min(100, Math.max(0, progress));
           const linkedHabitNames = (goal.linkedHabits || [])
-            .map((hId) => habits.find((h) => h.id === hId))
+            .map((hId: string) => habits.find((h: Habit) => h.id === hId))
             .filter(Boolean)
-            .map((h) => h!.name);
+            .map((h: any) => h!.name);
 
           return (
             <div
@@ -178,8 +178,8 @@ export default function GoalsPage() {
       )}
 
       {/* Custom Folders */}
-      {goalFolders.filter(f => f.id !== "general").map((folder) => {
-        const folderGoals = goals.filter((g) => g.folder === folder.id);
+      {goalFolders.filter(f => f.id !== "general").map((folder: any) => {
+        const folderGoals = goals.filter((g: Goal) => g.folder === folder.id);
         return (
           <div key={folder.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
             <div 
@@ -220,16 +220,14 @@ export default function GoalsPage() {
     </div>
   );
 
-  const renderHabitsList = () => (
-    <div className="space-y-4">
-      {habitsForToday.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] mb-4 px-2 text-slate-500">Привычки на сегодня</h3>
-          {habitsForToday.map(h => (
-            <HabitRow key={h.id} habit={h} dateStr={dateStr} />
-          ))}
-        </div>
-      ) : (
+  const renderHabitsList = () => {
+    const foldersToRender = habitFolders.map((folder: HabitFolder) => {
+      const folderHabits = habitsForToday.filter((h: Habit) => h.folder === folder.id);
+      return { ...folder, habits: folderHabits };
+    }).filter((f: any) => f.habits.length > 0 || (f.id === "general" && habitsForToday.length > 0));
+
+    if (habitsForToday.length === 0) {
+      return (
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-16 text-center shadow-sm">
            <div className="w-20 h-20 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <ListTodo className="w-10 h-10 text-blue-500 opacity-40" />
@@ -239,9 +237,43 @@ export default function GoalsPage() {
               Добавь привычки, которые хочешь отслеживать, во вкладке <span className="text-blue-400 font-bold">Добавить</span>.
            </p>
         </div>
-      )}
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {foldersToRender.map(folder => (
+          <div key={folder.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
+            <div 
+              className="bg-slate-800/30 px-5 py-3 border-b border-slate-800/40 cursor-pointer flex justify-between items-center transition-colors hover:bg-slate-800/50"
+              onClick={() => toggleHabitFolderCollapse(folder.id)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: folder.color }} />
+                <h3 className="text-[11px] font-bold tracking-widest text-slate-300 uppercase">
+                  {folder.emoji || "📁"} {folder.name}
+                </h3>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-950/40 px-2 py-0.5 rounded-full border border-slate-800/60">{folder.habits.length}</span>
+              </div>
+              <div className="text-slate-500">
+                {folder.collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              </div>
+            </div>
+            {!folder.collapsed && (
+              <div className="p-3 space-y-2">
+                {folder.habits.map(h => (
+                  <HabitRow key={h.id} habit={h} dateStr={dateStr} />
+                ))}
+                {folder.habits.length === 0 && (
+                  <div className="px-6 py-4 text-slate-600 text-xs text-center italic">Нет привычек на сегодня в этой папке</div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="px-5 pt-8 pb-32 min-h-full">

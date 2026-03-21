@@ -166,6 +166,9 @@ export interface ShopFolder {
 }
 
 interface AppContextType {
+  customColors: string[];
+  addCustomColor: (color: string) => void;
+  removeCustomColor: (color: string) => void;
   coins: number;
   addCoins: (amount: number) => void;
   spendCoins: (amount: number) => boolean;
@@ -185,6 +188,7 @@ interface AppContextType {
   addHabitFolder: (folder: HabitFolder) => void;
   updateHabitFolder: (id: string, folder: Partial<HabitFolder>) => void;
   deleteHabitFolder: (id: string) => void;
+  toggleHabitFolderCollapse: (id: string) => void;
   goals: Goal[];
   goalFolders: GoalFolder[];
   addGoal: (goal: Goal) => void;
@@ -261,6 +265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [shopFolders, setShopFolders] = useState<ShopFolder[]>([]);
   const [characterState, setCharacterState] = useState<CharacterState>({});
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [customColors, setCustomColors] = useState<string[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [syncLogs, setSyncLogs] = useState<{time: string, event: string, status: 'success' | 'error' | 'pending'}[]>([]);
@@ -277,7 +282,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // State ref to avoid stale closures in sync calls
   const currentStateRef = React.useRef({
-    coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks
+    coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors
   });
 
   useEffect(() => {
@@ -286,16 +291,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     currentStateRef.current = {
-      coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks
+      coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors
     };
-  }, [coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks]);
+  }, [coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors]);
 
   useEffect(() => {
     const savedData = storage.getData();
     let folders = savedData.habitFolders || [];
-    const generalFolder = folders.find((f: any) => f.id === "general");
+    const generalFolder = folders.find((f: HabitFolder) => f.id === "general");
     if (!generalFolder) {
-      folders = [{ id: "general", name: "Общие", color: "#94a3b8", collapsed: false }, ...folders];
+      folders = [{ id: "general", name: "Общие", color: "#94a3b8", collapsed: false } as HabitFolder, ...folders];
     }
     setCoins(savedData.coins || 0);
     const migratedHabits = (savedData.habits || []).map(migrateHabit);
@@ -312,10 +317,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedShopItems = savedData.shopItems;
     if (savedShopItems && savedShopItems.length > 0) {
       const savedIds = new Set(savedShopItems.map((i: ShopItem) => i.id));
-      const newDefaults = defaultShopItems.filter((d) => !savedIds.has(d.id));
+      const newDefaults = defaultShopItems.filter((d: ShopItem) => !savedIds.has(d.id));
       setShopItems([...savedShopItems, ...newDefaults]);
     } else {
-      setShopItems(defaultShopItems);
+      setShopItems(defaultShopItems as ShopItem[]);
     }
     setShopFolders(savedData.shopFolders || []);
     setCharacterState(savedData.characterState || {});
@@ -352,6 +357,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setShopFolders(remoteData.shopFolders || []);
               setCharacterState(remoteData.characterState || {});
               setTasks(remoteData.tasks || []);
+              setCustomColors(remoteData.customColors || []);
               storage.saveData(remoteData);
               setTimeout(() => { isRemoteUpdateRef.current = false; }, 200);
             }
@@ -399,6 +405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   setShopFolders(newData.shopFolders || []);
                   setCharacterState(newData.characterState || {});
                   setTasks(newData.tasks || []);
+                  setCustomColors(newData.customColors || []);
                   storage.saveData(newData);
                   setTimeout(() => { isRemoteUpdateRef.current = false; }, 500);
                 } else {
@@ -407,7 +414,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
             }
           )
-          .subscribe((status) => {
+          .subscribe((status: string) => {
             console.log("Sync: Channel status change:", status);
             setIsOnline(status === 'SUBSCRIBED');
           });
@@ -524,6 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setShopFolders(remoteData.shopFolders || []);
       setCharacterState(remoteData.characterState || {});
       setTasks(remoteData.tasks || []);
+      setCustomColors(remoteData.customColors || []);
       storage.saveData(remoteData);
       
       logSyncEvent("Данные загружены из облака", "success");
@@ -553,7 +561,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     shopItemsValue: ShopItem[],
     shopFoldersValue: ShopFolder[],
     characterStateValue: CharacterState,
-    tasksValue: Task[]
+    tasksValue: Task[],
+    customColorsValue: string[]
   ) => {
     const data: StorageData = {
       coins: coinsValue,
@@ -567,12 +576,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       character: {},
       characterState: characterStateValue,
       tasks: tasksValue,
+      customColors: customColorsValue,
       progress: {},
       streaks: {},
       shop: [],
       folders: [],
       lastUpdated: new Date().toISOString(),
-      clientId: clientIdRef.current, // CRITICAL: Save client ID to local storage too
+      clientId: clientIdRef.current,
     };
     storage.saveData(data);
   };
@@ -586,7 +596,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const remoteData = await syncLoad(session.user.id) as any;
       if (remoteData) {
         console.log("Sync: Manual fetch success, updating local state");
-        isRemoteUpdateRef.current = true; // Prevent pushing back
+        isRemoteUpdateRef.current = true;
         setCoins(remoteData.coins || 0);
         setHabits((remoteData.habits || []).map(migrateHabit));
         setBlocks(remoteData.blocks || []);
@@ -597,6 +607,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setShopFolders(remoteData.shopFolders || []);
         setCharacterState(remoteData.characterState || {});
         setTasks(remoteData.tasks || []);
+        setCustomColors(remoteData.customColors || []);
         storage.saveData(remoteData);
         setTimeout(() => { isRemoteUpdateRef.current = false; }, 500);
       }
@@ -611,27 +622,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addCoins = (amount: number) => {
     const newCoins = Math.round((coins + amount) * 100) / 100;
     setCoins(newCoins);
-    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const spendCoins = (amount: number): boolean => {
     if (coins < amount) return false;
     const newCoins = Math.round((coins - amount) * 100) / 100;
     setCoins(newCoins);
-    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     return true;
   };
 
   const addHabit = (habit: Habit) => {
     const newHabits = [...habits, habit];
     setHabits(newHabits);
-    saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const updateHabit = (id: string, updates: Partial<Habit>) => {
     const newHabits = habits.map((h) => (h.id === id ? { ...h, ...updates } : h));
     setHabits(newHabits);
-    saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteHabit = (id: string) => {
@@ -639,7 +650,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newBlocks = blocks.map((b) => ({ ...b, habits: b.habits.filter((h) => h.id !== id) }));
     setHabits(newHabits);
     setBlocks(newBlocks);
-    saveAllData(coins, newHabits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, newHabits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const completeHabit = (id: string, dateStr?: string) => {
@@ -659,7 +670,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
         setHabits(newHabits);
         setCoins(newCoins);
-        saveAllData(newCoins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+        saveAllData(newCoins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
       }
     } else {
       const newCompletedDates = { ...(habit.completedDates || {}) };
@@ -671,7 +682,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
       setHabits(newHabits);
       setCoins(newCoins);
-      saveAllData(newCoins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(newCoins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -689,25 +700,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     setHabits(updatedHabits);
     setBlocks(newBlocks);
-    saveAllData(coins, updatedHabits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, updatedHabits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const addBlock = (block: HabitBlock) => {
     const newBlocks = [...blocks, block];
     setBlocks(newBlocks);
-    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
+  };
+
+  const addCustomColor = (color: string) => {
+    if (!customColors.includes(color)) {
+      const newColors = [...customColors, color];
+      setCustomColors(newColors);
+      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, newColors);
+    }
+  };
+
+  const removeCustomColor = (color: string) => {
+    const newColors = customColors.filter(c => c !== color);
+    setCustomColors(newColors);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, newColors);
   };
 
   const updateBlock = (id: string, updates: Partial<HabitBlock>) => {
     const newBlocks = blocks.map((b) => (b.id === id ? { ...b, ...updates } : b));
     setBlocks(newBlocks);
-    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteBlock = (id: string) => {
     const newBlocks = blocks.filter((b) => b.id !== id);
     setBlocks(newBlocks);
-    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const toggleBlockCollapse = (id: string) => {
@@ -717,55 +742,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addHabitFolder = (folder: HabitFolder) => {
     const newFolders = [...habitFolders, folder];
     setHabitFolders(newFolders);
-    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const updateHabitFolder = (id: string, updates: Partial<HabitFolder>) => {
     const newFolders = habitFolders.map((f) => (f.id === id ? { ...f, ...updates } : f));
     setHabitFolders(newFolders);
-    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteHabitFolder = (id: string) => {
     const newFolders = habitFolders.filter((f) => f.id !== id);
     setHabitFolders(newFolders);
-    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
+  };
+
+  const toggleHabitFolderCollapse = (id: string) => {
+    updateHabitFolder(id, { collapsed: !habitFolders.find((f) => f.id === id)?.collapsed });
   };
 
   const addGoal = (goal: Goal) => {
     const newGoals = [...goals, goal];
     setGoals(newGoals);
-    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const updateGoal = (id: string, updates: Partial<Goal>) => {
     const newGoals = goals.map((g) => (g.id === id ? { ...g, ...updates } : g));
     setGoals(newGoals);
-    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteGoal = (id: string) => {
     const newGoals = goals.filter((g) => g.id !== id);
     setGoals(newGoals);
-    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const addGoalFolder = (folder: GoalFolder) => {
     const newFolders = [...goalFolders, folder];
     setGoalFolders(newFolders);
-    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const updateGoalFolder = (id: string, updates: Partial<GoalFolder>) => {
     const newFolders = goalFolders.map((f) => (f.id === id ? { ...f, ...updates } : f));
     setGoalFolders(newFolders);
-    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteGoalFolder = (id: string) => {
     const newFolders = goalFolders.filter((f) => f.id !== id);
     setGoalFolders(newFolders);
-    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks, customColors);
   };
 
   const toggleGoalFolderCollapse = (id: string) => {
@@ -775,19 +804,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addShopItem = (item: ShopItem) => {
     const newItems = [...shopItems, item];
     setShopItems(newItems);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks, customColors);
   };
 
   const updateShopItem = (id: string, updates: Partial<ShopItem>) => {
     const newItems = shopItems.map((i) => (i.id === id ? { ...i, ...updates } : i));
     setShopItems(newItems);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks, customColors);
   };
 
   const deleteShopItem = (id: string) => {
     const newItems = shopItems.filter((i) => i.id !== id);
     setShopItems(newItems);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks, customColors);
   };
 
   const purchaseItem = (id: string): boolean => {
@@ -797,20 +826,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newItems = shopItems.map((i) => (i.id === id ? { ...i, purchased: true } : i));
     setCoins(newCoins);
     setShopItems(newItems);
-    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks);
+    saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, newItems, shopFolders, characterState, tasks, customColors);
     return true;
   };
 
   const addShopFolder = (folder: ShopFolder) => {
     const newFolders = [...shopFolders, folder];
     setShopFolders(newFolders);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, newFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, newFolders, characterState, tasks, customColors);
   };
 
   const deleteShopFolder = (id: string) => {
     const newFolders = shopFolders.filter((f) => f.id !== id);
     setShopFolders(newFolders);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, newFolders, characterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, newFolders, characterState, tasks, customColors);
   };
 
   const equipItem = (itemId: string) => {
@@ -818,14 +847,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!item || !item.slot) return;
     const newCharacterState = { ...characterState, [item.slot]: itemId };
     setCharacterState(newCharacterState);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, newCharacterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, newCharacterState, tasks, customColors);
   };
 
   const unequipItem = (slot: keyof CharacterState) => {
     const newCharacterState = { ...characterState };
     delete newCharacterState[slot];
     setCharacterState(newCharacterState);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, newCharacterState, tasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, newCharacterState, tasks, customColors);
   };
 
   const exportBackup = () => {
@@ -843,7 +872,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (habit && amount > 0) {
       const newUnits = habit.units + amount;
       const coinsEarned = (habit.coinsPerUnit || 0) * amount;
-      // Also ensure unitsTracking is true if we're adding units
       updateHabit(habitId, { units: newUnits, unitsTracking: true });
       if (coinsEarned > 0) {
         addCoins(coinsEarned);
@@ -863,11 +891,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     logSyncEvent("Импорт бэкапа...", "pending");
     const success = await storage.importBackup(file);
     if (success) {
-      const savedData = storage.getData(); // Already has new timestamp from storage.saveData
-      
-      // Silence auto-sync during state update to prevent partial pushes
+      const savedData = storage.getData();
       isRemoteUpdateRef.current = true;
-      
       try {
         setCoins(savedData.coins || 0);
         setHabits((savedData.habits || []).map(migrateHabit));
@@ -879,8 +904,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setShopFolders(savedData.shopFolders || []);
         setCharacterState(savedData.characterState || {});
         setTasks(savedData.tasks || []);
+        setCustomColors(savedData.customColors || []);
         
-        // Update local storage again to be absolutely sure timestamp is the newest
         const finalData: StorageData = {
           ...savedData,
           lastUpdated: new Date().toISOString(),
@@ -888,7 +913,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         storage.saveData(finalData);
         
-        // Explicitly push this to cloud right now
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           await syncSave(session.user.id, finalData);
@@ -902,7 +926,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logSyncEvent("Ошибка импорта: " + err.message, "error");
         toast.error("Ошибка при импорте: " + err.message);
       } finally {
-        // Wait a bit for React to settle before enabling auto-sync
         setTimeout(() => {
           isRemoteUpdateRef.current = false;
         }, 500);
@@ -923,19 +946,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addTask = (task: Task) => {
     const newTasks = [...tasks, task];
     setTasks(newTasks);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
     const newTasks = tasks.map((t) => (t.id === id ? { ...t, ...updates } : t));
     setTasks(newTasks);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
   };
 
   const deleteTask = (id: string) => {
     const newTasks = tasks.filter((t) => t.id !== id);
     setTasks(newTasks);
-    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+    saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
   };
 
   const completeTask = (id: string, dateStr?: string) => {
@@ -944,7 +967,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const targetDate = dateStr || getTodayDateString();
     const isCompleted = !!(task.completedDates && task.completedDates[targetDate]);
 
-    // One-time deletion logic
     if (!isCompleted && task.isOneTime) {
       if (task.coins && task.coins > 0) {
         addCoins(task.coins);
@@ -965,15 +987,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const newTasks = tasks.map((t) => (t.id === id ? { ...t, completedDates: newCompletedDates } : t));
     
-    // Sync update
     if (coinsChange !== 0) {
       const newCoins = Math.round((coins + coinsChange) * 100) / 100;
       setCoins(newCoins);
       setTasks(newTasks);
-      saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+      saveAllData(newCoins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
     } else {
       setTasks(newTasks);
-      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
     }
   };
 
@@ -983,7 +1004,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newTasks = [...tasks];
       [newTasks[idx], newTasks[idx - 1]] = [newTasks[idx - 1], newTasks[idx]];
       setTasks(newTasks);
-      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
     }
   };
 
@@ -993,7 +1014,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newTasks = [...tasks];
       [newTasks[idx], newTasks[idx + 1]] = [newTasks[idx + 1], newTasks[idx]];
       setTasks(newTasks);
-      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, newTasks, customColors);
     }
   };
 
@@ -1003,7 +1024,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newHabits = [...habits];
       [newHabits[idx], newHabits[idx - 1]] = [newHabits[idx - 1], newHabits[idx]];
       setHabits(newHabits);
-      saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1013,7 +1034,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newHabits = [...habits];
       [newHabits[idx], newHabits[idx + 1]] = [newHabits[idx + 1], newHabits[idx]];
       setHabits(newHabits);
-      saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, newHabits, blocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1023,7 +1044,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newFolders = [...habitFolders];
       [newFolders[idx], newFolders[idx - 1]] = [newFolders[idx - 1], newFolders[idx]];
       setHabitFolders(newFolders);
-      saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1033,7 +1054,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newFolders = [...habitFolders];
       [newFolders[idx], newFolders[idx + 1]] = [newFolders[idx + 1], newFolders[idx]];
       setHabitFolders(newFolders);
-      saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, newFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1043,7 +1064,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newGoals = [...goals];
       [newGoals[idx], newGoals[idx - 1]] = [newGoals[idx - 1], newGoals[idx]];
       setGoals(newGoals);
-      saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1053,7 +1074,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newGoals = [...goals];
       [newGoals[idx], newGoals[idx + 1]] = [newGoals[idx + 1], newGoals[idx]];
       setGoals(newGoals);
-      saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, habitFolders, newGoals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1063,7 +1084,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newFolders = [...goalFolders];
       [newFolders[idx], newFolders[idx - 1]] = [newFolders[idx - 1], newFolders[idx]];
       setGoalFolders(newFolders);
-      saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1073,7 +1094,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newFolders = [...goalFolders];
       [newFolders[idx], newFolders[idx + 1]] = [newFolders[idx + 1], newFolders[idx]];
       setGoalFolders(newFolders);
-      saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, blocks, habitFolders, goals, newFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1083,7 +1104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newBlocks = [...blocks];
       [newBlocks[idx], newBlocks[idx - 1]] = [newBlocks[idx - 1], newBlocks[idx]];
       setBlocks(newBlocks);
-      saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1093,7 +1114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newBlocks = [...blocks];
       [newBlocks[idx], newBlocks[idx + 1]] = [newBlocks[idx + 1], newBlocks[idx]];
       setBlocks(newBlocks);
-      saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks);
+      saveAllData(coins, habits, newBlocks, habitFolders, goals, goalFolders, shopItems, shopFolders, characterState, tasks, customColors);
     }
   };
 
@@ -1119,6 +1140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addHabitFolder,
         updateHabitFolder,
         deleteHabitFolder,
+        toggleHabitFolderCollapse,
         goals,
         goalFolders,
         addGoal,
@@ -1168,7 +1190,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         forceSyncFromCloud,
         forcePushToCloud,
         isOnline,
-        syncLogs
+        syncLogs,
+        customColors,
+        addCustomColor,
+        removeCustomColor
       }}
     >
       {children}

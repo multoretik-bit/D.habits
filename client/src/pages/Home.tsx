@@ -175,9 +175,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* Block habits & tasks in 2 columns */}
+      {/* Block habits & tasks - stack on mobile, 2 columns on desktop */}
       {activeBlock && (
-        <div className="px-3 py-4 grid grid-cols-2 gap-2 sm:gap-4 relative z-10">
+        <div className="px-3 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
           <div className="flex flex-col">
             <h3 
               className="text-[11px] font-black uppercase tracking-[0.2em] mb-4 px-2 opacity-60"
