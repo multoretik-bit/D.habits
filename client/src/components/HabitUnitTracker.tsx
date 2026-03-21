@@ -17,13 +17,23 @@ export default function HabitUnitTracker({ habit, compact = false, alwaysShow = 
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className={`flex items-center gap-2 bg-slate-900/60 rounded-xl border border-slate-800/80 ${
+      className={`flex items-center justify-between w-full bg-slate-900/60 rounded-xl border border-slate-800/80 ${
         compact ? "px-2 py-1" : "px-3 py-2 mt-2"
       }`}
     >
-      <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest px-1">
-        {habit.progressUnit || "times"}
-      </span>
+      <div className="flex flex-col">
+        <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest px-1">
+          Всего
+        </span>
+        <span 
+          className="text-xs font-black px-1"
+          style={{ color: habit.color || '#3b82f6' }}
+        >
+          {habit.units} <span className="text-[10px] text-slate-400 opacity-80">{habit.progressUnit || "шт"}</span>
+        </span>
+      </div>
+      
+      <div className="flex items-center gap-2">
       
       <div className="flex items-center gap-2 bg-slate-950/50 rounded-lg p-1 border border-slate-800/50">
         <input
@@ -45,6 +55,7 @@ export default function HabitUnitTracker({ habit, compact = false, alwaysShow = 
       >
         +{amount}
       </Button>
+      </div>
     </div>
   );
 }

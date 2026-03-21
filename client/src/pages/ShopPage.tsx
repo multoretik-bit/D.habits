@@ -226,7 +226,7 @@ export default function ShopPage() {
                     disabled={coins < item.price}
                     className={`w-full gap-1.5 font-bold mt-1 shadow-sm ${coins >= item.price ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400" : "bg-slate-800 text-slate-500"}`}
                   >
-                    <span>💰</span> {item.price}
+                    <img src="/coin.png" alt="coin" className="w-4 h-4 object-contain inline-block -translate-y-0.5" /> {item.price}
                   </Button>
                 </div>
               ))}

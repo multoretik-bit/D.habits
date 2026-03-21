@@ -46,7 +46,7 @@ export default function HabitRow({ habit, dateStr, hideUnitTracker }: HabitRowPr
           className="flex-shrink-0 flex flex-col items-center justify-center w-11 h-11 rounded-xl text-center"
           style={{ backgroundColor: `${habit.color}25`, border: `1px solid ${habit.color}40` }}
         >
-          <span className="text-[14px] leading-none">🪙</span>
+          <img src="/coin.png" alt="coin" className="w-3.5 h-3.5 object-contain mb-0.5" />
           <span className="text-[10px] font-bold text-white leading-tight mt-0.5">{habit.coinsPerComplete}</span>
         </div>
 

@@ -53,7 +53,9 @@ export default function StatsPage() {
           <div className="text-xs text-muted-foreground">of {totalHabits} total</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-yellow-500">💰 {coins}</div>
+          <div className="flex items-center justify-center gap-2 text-3xl font-bold text-yellow-500">
+            <img src="/coin.png" alt="coin" className="w-8 h-8 object-contain" /> {coins}
+          </div>
           <div className="text-sm text-muted-foreground mt-1">Total Coins</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">

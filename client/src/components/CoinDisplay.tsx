@@ -19,7 +19,7 @@ export default function CoinDisplay({ amount, size = "md", showLabel = true }: C
   };
   return (
     <div className={`flex items-center ${sizeClasses[size]} text-yellow-500 font-semibold`}>
-      <span className={iconSizes[size]}>💰</span>
+      <img src="/coin.png" alt="coin" className={`${iconSizes[size]} object-contain drop-shadow-sm`} />
       {showLabel && <span className="text-foreground">{formatCoins(amount)}</span>}
     </div>
   );

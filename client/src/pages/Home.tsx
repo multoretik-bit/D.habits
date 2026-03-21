@@ -42,7 +42,7 @@ function TaskRow({ task, dateStr }: { task: Task; dateStr: string }) {
           className="flex-shrink-0 flex flex-col items-center justify-center w-10 h-10 rounded-xl text-center"
           style={{ backgroundColor: `${taskColor}25`, border: `1px solid ${taskColor}40` }}
         >
-          <span className="text-[12px] leading-none">🪙</span>
+          <img src="/coin.png" alt="coin" className="w-3 h-3 object-contain mb-0.5" />
           <span className="text-[9px] font-bold text-white leading-tight mt-0.5">{task.coins}</span>
         </div>
       )}
