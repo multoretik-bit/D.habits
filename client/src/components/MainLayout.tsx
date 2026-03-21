@@ -30,7 +30,10 @@ export default function MainLayout({ children, onSignOut }: MainLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-20 bg-[#060c1c]/90 backdrop-blur-md border-b border-blue-900/40 flex items-center justify-between px-4 py-4 shadow-sm">
-        <span className="font-extrabold text-xl text-blue-50 tracking-tight">dHabits</span>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="dHabits Logo" className="w-7 h-7 rounded-[8px] object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+          <span className="font-extrabold text-xl text-blue-50 tracking-tight">dHabits</span>
+        </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 bg-blue-950/40 border border-blue-900/40 px-3 py-1.5 rounded-full shadow-inner mr-1">
             <CoinDisplay amount={coins} size="sm" showLabel={true} />

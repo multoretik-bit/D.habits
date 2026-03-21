@@ -80,11 +80,11 @@ export default function AuthPage({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 mb-4">
-            <span className="text-3xl">🎯</span>
+        <div className="text-center mb-8">
+          <div className="flex flex-col items-center gap-4 mb-2">
+            <img src="/logo.png" alt="dHabits Logo" className="w-20 h-20 rounded-2xl drop-shadow-[0_0_15px_rgba(59,130,246,0.6)] object-contain" />
+            <h1 className="text-3xl font-bold text-white tracking-tight">dHabits</h1>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">dHabits</h1>
           <p className="text-slate-400 text-sm">Синхронизация данных</p>
         </div>
 
