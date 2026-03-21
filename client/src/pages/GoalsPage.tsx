@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Target, ArrowUp, ArrowDown } from "lucide-react";
-import { useApp, Goal } from "@/contexts/AppContext";
+import { ChevronDown, ChevronUp, Target, ArrowUp, ArrowDown, LayoutGrid, ListTodo } from "lucide-react";
+import { useApp, Goal, getTodayDateString } from "@/contexts/AppContext";
 import FormModal from "@/components/FormModal";
 import { FormInput } from "@/components/FormInputs";
+import HabitRow from "@/components/HabitRow";
 
 function UnifiedCoinBadge({ coins, color, label }: { coins: number; color: string; label?: string }) {
   return (
@@ -18,12 +19,17 @@ function UnifiedCoinBadge({ coins, color, label }: { coins: number; color: strin
 }
 
 export default function GoalsPage() {
-  const { goals, goalFolders, habits, updateGoal, toggleGoalFolderCollapse, addGoalFolder, moveGoalUp, moveGoalDown, moveGoalFolderUp, moveGoalFolderDown } = useApp();
+  const { goals, goalFolders, habits, updateGoal, toggleGoalFolderCollapse, moveGoalUp, moveGoalDown, moveGoalFolderUp, moveGoalFolderDown } = useApp();
+  const [activeTab, setActiveTab] = useState<'goals' | 'habits'>('goals');
 
   // Progress update state
   const [showUpdateProgress, setShowUpdateProgress] = useState(false);
   const [updatingGoalId, setUpdatingGoalId] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState("");
+
+  const dateStr = getTodayDateString();
+  const now = new Date();
+  const dayOfWeek = now.getDay();
 
   const handleOpenUpdateProgress = (goal: Goal) => {
     setUpdatingGoalId(goal.id);
@@ -47,7 +53,14 @@ export default function GoalsPage() {
     }
   };
 
-  const renderGoals = (folderGoals: Goal[]) => (
+  const habitsForToday = useMemo(() => {
+    return habits.filter(h => h.daysOfWeek.includes(dayOfWeek));
+  }, [habits, dayOfWeek]);
+
+  const generalGoals = goals.filter((g) => g.folder === "general");
+  const hasGeneralGoals = generalGoals.length > 0;
+
+  const renderGoalsItems = (folderGoals: Goal[]) => (
     <div className="p-3 space-y-3">
       {folderGoals.length === 0 ? (
         <div className="px-6 py-6 text-slate-600 text-sm text-center italic">В этой папке пока нет целей</div>
@@ -67,7 +80,6 @@ export default function GoalsPage() {
               className={`relative overflow-hidden group rounded-3xl border border-slate-800/80 bg-slate-950/40 transition-all ${goal.completed ? "opacity-60" : "hover:bg-slate-900/60"}`}
               style={{ borderLeft: `4px solid ${goal.color}` }}
             >
-              {/* Decorative gradient background */}
               <div 
                 className="absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.06] transition-opacity"
                 style={{ background: `linear-gradient(90deg, ${goal.color} 0%, transparent 100%)` }}
@@ -118,7 +130,6 @@ export default function GoalsPage() {
                   </div>
                 </div>
 
-                {/* Progress bar info */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-end text-[10px] font-bold tracking-wider uppercase">
                     <span className="text-slate-500">{goal.currentValue} / {goal.targetValue}</span>
@@ -151,74 +162,122 @@ export default function GoalsPage() {
     </div>
   );
 
-  const generalGoals = goals.filter((g) => g.folder === "general");
-  const hasGeneralGoals = generalGoals.length > 0;
+  const renderGoalsList = () => (
+    <div className="space-y-6">
+      {/* General Goals */}
+      {(hasGeneralGoals || goalFolders.length <= 1) && (
+        <div className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
+          <div className="bg-slate-800/30 px-5 py-3 border-b border-slate-800/40">
+            <h3 className="text-[11px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-slate-500" />
+              🏆 Общие цели
+            </h3>
+          </div>
+          {renderGoalsItems(generalGoals)}
+        </div>
+      )}
+
+      {/* Custom Folders */}
+      {goalFolders.filter(f => f.id !== "general").map((folder) => {
+        const folderGoals = goals.filter((g) => g.folder === folder.id);
+        return (
+          <div key={folder.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
+            <div 
+              className="bg-slate-800/30 px-5 py-3 border-b border-slate-800/40 cursor-pointer flex justify-between items-center transition-colors hover:bg-slate-800/50"
+              onClick={() => toggleGoalFolderCollapse(folder.id)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: folder.color }} />
+                <h3 className="text-[11px] font-bold tracking-widest text-slate-300 uppercase">
+                  {folder.emoji || "🏆"} {folder.name}
+                </h3>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-950/40 px-2 py-0.5 rounded-full border border-slate-800/60">{folderGoals.length}</span>
+              </div>
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button size="icon" variant="ghost" onClick={() => moveGoalFolderUp(folder.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowUp className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => moveGoalFolderDown(folder.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowDown className="w-4 h-4" /></Button>
+                <div className="text-slate-500 ml-2">
+                  {folder.collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                </div>
+              </div>
+            </div>
+            {!folder.collapsed && renderGoalsItems(folderGoals)}
+          </div>
+        );
+      })}
+
+      {goals.length === 0 && (
+        <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-16 text-center shadow-sm">
+          <div className="w-20 h-20 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 scale-110 shadow-2xl">
+            <Target className="w-10 h-10 text-blue-500 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-100 mb-2">Начни достигать!</h3>
+          <p className="text-sm text-slate-500 leading-relaxed px-4">
+            Поставь свою первую масштабную цель во вкладке <span className="text-blue-400 font-bold">Управление</span> и двигайся к ней каждый день.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderHabitsList = () => (
+    <div className="space-y-4">
+      {habitsForToday.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] mb-4 px-2 text-slate-500">Привычки на сегодня</h3>
+          {habitsForToday.map(h => (
+            <HabitRow key={h.id} habit={h} dateStr={dateStr} />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-16 text-center shadow-sm">
+           <div className="w-20 h-20 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ListTodo className="w-10 h-10 text-blue-500 opacity-40" />
+           </div>
+           <h3 className="text-xl font-bold text-slate-100 mb-2">Нет привычек на сегодня</h3>
+           <p className="text-sm text-slate-500 leading-relaxed px-4">
+              Добавь привычки, которые хочешь отслеживать, во вкладке <span className="text-blue-400 font-bold">Добавить</span>.
+           </p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="px-5 pt-8 pb-32 min-h-full">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic flex items-center gap-3">
           <Target className="w-8 h-8 text-blue-500" />
-          Мои Цели
+          {activeTab === 'goals' ? 'Мои Цели' : 'Мои Привычки'}
         </h2>
-        <p className="text-slate-500 text-xs font-medium mt-1 uppercase tracking-widest">Твой путь к успеху</p>
+        <p className="text-slate-500 text-xs font-medium mt-1 uppercase tracking-widest">
+            {activeTab === 'goals' ? 'Твой путь к успеху' : 'Личный прогресс каждый день'}
+        </p>
       </div>
 
-      <div className="space-y-6">
-        {/* General Goals */}
-        {(hasGeneralGoals || goalFolders.length <= 1) && (
-          <div className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
-            <div className="bg-slate-800/30 px-5 py-3 border-b border-slate-800/40">
-              <h3 className="text-[11px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-slate-500" />
-                🏆 Общие цели
-              </h3>
-            </div>
-            {renderGoals(generalGoals)}
-          </div>
-        )}
+      {/* Toggle */}
+      <div className="flex p-1 bg-slate-900/80 border border-slate-800/60 rounded-2xl mb-8 relative z-10">
+        <button
+          onClick={() => setActiveTab('goals')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all duration-300 font-black text-[10px] uppercase tracking-widest
+            ${activeTab === 'goals' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-slate-300'}`}
+        >
+          <Target className="w-3.5 h-3.5" />
+          Цели
+        </button>
+        <button
+          onClick={() => setActiveTab('habits')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all duration-300 font-black text-[10px] uppercase tracking-widest
+            ${activeTab === 'habits' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-slate-300'}`}
+        >
+          <ListTodo className="w-3.5 h-3.5" />
+          Привычки
+        </button>
+      </div>
 
-        {/* Custom Folders */}
-        {goalFolders.filter(f => f.id !== "general").map((folder) => {
-          const folderGoals = goals.filter((g) => g.folder === folder.id);
-          return (
-            <div key={folder.id} className="bg-slate-900/40 rounded-3xl border border-slate-800/60 overflow-hidden shadow-sm">
-              <div 
-                className="bg-slate-800/30 px-5 py-3 border-b border-slate-800/40 cursor-pointer flex justify-between items-center transition-colors hover:bg-slate-800/50"
-                onClick={() => toggleGoalFolderCollapse(folder.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: folder.color }} />
-                  <h3 className="text-[11px] font-bold tracking-widest text-slate-300 uppercase">
-                    {folder.emoji || "🏆"} {folder.name}
-                  </h3>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-950/40 px-2 py-0.5 rounded-full border border-slate-800/60">{folderGoals.length}</span>
-                </div>
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button size="icon" variant="ghost" onClick={() => moveGoalFolderUp(folder.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowUp className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => moveGoalFolderDown(folder.id)} className="w-8 h-8 text-slate-500 hover:text-blue-400"><ArrowDown className="w-4 h-4" /></Button>
-                  <div className="text-slate-500 ml-2">
-                    {folder.collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                  </div>
-                </div>
-              </div>
-              {!folder.collapsed && renderGoals(folderGoals)}
-            </div>
-          );
-        })}
-
-        {goals.length === 0 && (
-          <div className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-16 text-center shadow-sm">
-            <div className="w-20 h-20 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 scale-110 shadow-2xl">
-              <Target className="w-10 h-10 text-blue-500 animate-pulse" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-100 mb-2">Начни достигать!</h3>
-            <p className="text-sm text-slate-500 leading-relaxed px-4">
-              Поставь свою первую масштабную цель во вкладке <span className="text-blue-400 font-bold">Управление</span> и двигайся к ней каждый день.
-            </p>
-          </div>
-        )}
+      <div className="relative z-10">
+        {activeTab === 'goals' ? renderGoalsList() : renderHabitsList()}
       </div>
 
       {/* Update Progress Modal */}

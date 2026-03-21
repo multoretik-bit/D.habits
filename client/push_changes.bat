@@ -1,0 +1,9 @@
+@echo off
+echo Adding changes...
+git add .
+echo Committing changes...
+git commit -m "Compacted habits UI, added manual unit entry and Goals/Habits toggle"
+echo Pushing to GitHub...
+git push
+echo Done!
+pause

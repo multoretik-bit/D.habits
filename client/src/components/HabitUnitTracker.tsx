@@ -17,47 +17,34 @@ export default function HabitUnitTracker({ habit, compact = false, alwaysShow = 
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className={`flex items-center gap-1.5 bg-secondary/50 rounded-xl border border-border ${
-        compact ? "px-1.5 py-1" : "px-2 py-1.5 mt-2"
+      className={`flex items-center gap-2 bg-slate-900/60 rounded-xl border border-slate-800/80 ${
+        compact ? "px-2 py-1" : "px-3 py-2 mt-2"
       }`}
     >
-      <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">
-        {habit.progressUnit || "шт"}
+      <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest px-1">
+        {habit.progressUnit || "times"}
       </span>
       
-      <div className="flex items-center gap-1 bg-background/50 rounded-lg p-0.5 border border-border/50">
-        <button
-          onClick={() => setAmount(Math.max(1, amount - 1))}
-          className="w-5 h-5 rounded-md hover:bg-secondary flex items-center justify-center text-foreground transition-colors"
-        >
-          <Minus className="w-3 h-3" />
-        </button>
-        <span className="text-[11px] font-bold text-foreground w-4 text-center">
-          {amount}
-        </span>
-        <button
-          onClick={() => setAmount(amount + 1)}
-          className="w-5 h-5 rounded-md hover:bg-secondary flex items-center justify-center text-foreground transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-        </button>
+      <div className="flex items-center gap-2 bg-slate-950/50 rounded-lg p-1 border border-slate-800/50">
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 0))}
+          className="bg-transparent text-white text-xs font-bold w-12 text-center outline-none border-none focus:ring-0"
+        />
       </div>
 
       <Button
         size="sm"
-        onClick={() => addUnitsToHabit(habit.id, amount)}
-        className="h-6 px-2 text-[10px] font-bold rounded-lg shadow-sm"
+        onClick={() => {
+          addUnitsToHabit(habit.id, amount);
+          setAmount(1); // Reset after adding
+        }}
+        className="h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-lg shadow-blue-900/20 active:scale-95 transition-all"
         style={{ backgroundColor: habit.color, color: "#fff" }}
       >
         +{amount}
       </Button>
-      
-      {!compact && (
-        <div className="ml-auto px-2 border-l border-border/50">
-          <span className="text-[10px] text-muted-foreground block leading-none">Всего</span>
-          <span className="text-[12px] font-black text-foreground">{habit.units}</span>
-        </div>
-      )}
     </div>
   );
 }
