@@ -9,18 +9,38 @@ interface CharacterDisplayProps {
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ width = 150, height = 200 }) => {
   const { characterState, shopItems } = useApp();
   
-  const renderItem = (item?: ShopItem) => {
+  const renderItem = (item?: ShopItem, isPet?: boolean) => {
     if (!item) return null;
+    
+    // PNG Image support
     if (item.assetPath && item.assetPath.endsWith('.png')) {
       return (
         <image 
           href={item.assetPath} 
-          x="0" y="0" width="100" height="150" 
+          x={isPet ? "-50" : "0"} y={isPet ? "-50" : "0"} 
+          width={isPet ? "100" : "100"} height={isPet ? "100" : "150"} 
           preserveAspectRatio="xMidYMid meet"
         />
       );
     }
-    return <g dangerouslySetInnerHTML={{ __html: item.assetPath || "" }} />;
+    
+    // SVG Asset support
+    if (item.assetPath) {
+      return <g dangerouslySetInnerHTML={{ __html: item.assetPath }} />;
+    }
+    
+    // Emoji Fallback
+    return (
+      <text 
+        x={isPet ? "0" : "50"} 
+        y={isPet ? "0" : "75"} 
+        fontSize={isPet ? "45" : "25"} 
+        textAnchor="middle" 
+        dominantBaseline="middle"
+      >
+        {item.emoji}
+      </text>
+    );
   };
 
   const equippedItems: { [key: string]: ShopItem } = {};
@@ -55,8 +75,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ width = 150, height
 
         {/* Pet Layer (beside character) */}
         {equippedItems.pet && (
-           <g transform="translate(65, 100) scale(0.3)">
-              {renderItem(equippedItems.pet)}
+           <g transform="translate(82, 115)">
+              {renderItem(equippedItems.pet, true)}
            </g>
         )}
       </svg>
