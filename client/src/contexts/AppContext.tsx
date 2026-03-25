@@ -143,11 +143,11 @@ export interface ShopItem {
   name: string;
   emoji: string;
   price: number;
-  category: "reward" | "character" | "background" | "vehicle";
+  category: "reward" | "clothing" | "background" | "vehicle" | "pets" | "character";
   folder: string;
   purchased: boolean;
   assetPath?: string;
-  slot?: "head" | "body" | "hands" | "feet" | "accessory" | "background" | "vehicle";
+  slot?: "head" | "body" | "hands" | "feet" | "accessory" | "background" | "vehicle" | "pet";
 }
 
 export interface CharacterState {
@@ -158,6 +158,7 @@ export interface CharacterState {
   accessory?: string;
   background?: string;
   vehicle?: string;
+  pet?: string;
 }
 
 export interface ShopFolder {

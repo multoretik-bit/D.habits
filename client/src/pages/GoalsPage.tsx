@@ -227,7 +227,7 @@ export default function GoalsPage() {
 
   const renderHabitsList = () => {
     const foldersToRender = habitFolders.map((folder: HabitFolder) => {
-      const folderHabits = habitsForToday.filter((h: Habit) => h.folder === folder.id);
+      const folderHabits = habits.filter((h: Habit) => h.folder === folder.id);
       return { ...folder, habits: folderHabits };
     });
 

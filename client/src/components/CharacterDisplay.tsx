@@ -8,6 +8,21 @@ interface CharacterDisplayProps {
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ width = 150, height = 200 }) => {
   const { characterState, shopItems } = useApp();
+  
+  const renderItem = (item?: ShopItem) => {
+    if (!item) return null;
+    if (item.assetPath && item.assetPath.endsWith('.png')) {
+      return (
+        <image 
+          href={item.assetPath} 
+          x="0" y="0" width="100" height="150" 
+          preserveAspectRatio="xMidYMid meet"
+        />
+      );
+    }
+    return <g dangerouslySetInnerHTML={{ __html: item.assetPath || "" }} />;
+  };
+
   const equippedItems: { [key: string]: ShopItem } = {};
   Object.entries(characterState).forEach(([slot, itemId]) => {
     const item = shopItems.find((i) => i.id === itemId);
@@ -17,6 +32,12 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ width = 150, height
   return (
     <div className="relative" style={{ width: `${width}px`, height: `${height}px` }}>
       <svg width={width} height={height} viewBox="0 0 100 150" style={{ position: "relative", display: "block" }}>
+        {/* Background Layer */}
+        {renderItem(equippedItems.background)}
+
+        {/* Vehicle (behind character) */}
+        {renderItem(equippedItems.vehicle)}
+
         {/* Base character */}
         <circle cx="50" cy="25" r="20" fill="#E0B98D" />
         <rect x="40" y="45" width="20" height="50" fill="#E0B98D" />
@@ -24,21 +45,19 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({ width = 150, height
         <rect x="60" y="45" width="15" height="40" fill="#E0B98D" transform="rotate(10 67.5 65)" />
         <rect x="40" y="95" width="15" height="50" fill="#E0B98D" />
         <rect x="45" y="95" width="15" height="50" fill="#E0B98D" />
-        {/* Equipped items */}
-        {equippedItems.head && (
-          <g dangerouslySetInnerHTML={{ __html: equippedItems.head.assetPath || "" }} />
-        )}
-        {equippedItems.body && (
-          <g dangerouslySetInnerHTML={{ __html: equippedItems.body.assetPath || "" }} />
-        )}
-        {equippedItems.hands && (
-          <g dangerouslySetInnerHTML={{ __html: equippedItems.hands.assetPath || "" }} />
-        )}
-        {equippedItems.feet && (
-          <g dangerouslySetInnerHTML={{ __html: equippedItems.feet.assetPath || "" }} />
-        )}
-        {equippedItems.accessory && (
-          <g dangerouslySetInnerHTML={{ __html: equippedItems.accessory.assetPath || "" }} />
+
+        {/* Clothing Layers */}
+        {renderItem(equippedItems.head)}
+        {renderItem(equippedItems.body)}
+        {renderItem(equippedItems.hands)}
+        {renderItem(equippedItems.feet)}
+        {renderItem(equippedItems.accessory)}
+
+        {/* Pet Layer (beside character) */}
+        {equippedItems.pet && (
+           <g transform="translate(65, 100) scale(0.3)">
+              {renderItem(equippedItems.pet)}
+           </g>
         )}
       </svg>
     </div>

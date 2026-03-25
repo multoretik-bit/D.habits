@@ -11,8 +11,9 @@ import { nanoid } from "nanoid";
 
 const ITEM_CATEGORIES = [
   { value: "reward", label: "Награды" },
-  { value: "character", label: "Персонаж" },
-  { value: "background", label: "Фон" },
+  { value: "clothing", label: "Одежда" },
+  { value: "pets", label: "Питомцы" },
+  { value: "background", label: "Дома" },
   { value: "vehicle", label: "Транспорт" },
 ];
 
@@ -29,7 +30,8 @@ const ITEM_SLOTS = [
 function getCategoryIcon(category: string) {
   switch (category) {
     case "reward": return <Star className="w-4 h-4 text-yellow-500" />;
-    case "character": return <User className="w-4 h-4 text-blue-400" />;
+    case "clothing": return <User className="w-4 h-4 text-blue-400" />;
+    case "pets": return <span className="text-sm">🐾</span>;
     case "background": return <Home className="w-4 h-4 text-green-400" />;
     case "vehicle": return <Car className="w-4 h-4 text-purple-400" />;
     default: return <ShoppingCart className="w-4 h-4 text-slate-400" />;
@@ -44,7 +46,7 @@ export default function ShopPage() {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<"shop" | "inventory" | "character">("shop");
-  const [activeCategory, setActiveCategory] = useState<"all" | "reward" | "character" | "background" | "vehicle">("all");
+  const [activeCategory, setActiveCategory] = useState<"all" | "reward" | "clothing" | "background" | "vehicle" | "pets" | "character">("all");
   const [showCreateItem, setShowCreateItem] = useState(false);
   const [showEditItem, setShowEditItem] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function ShopPage() {
   const [itemName, setItemName] = useState("");
   const [itemEmoji, setItemEmoji] = useState("🎁");
   const [itemPrice, setItemPrice] = useState("50");
-  const [itemCategory, setItemCategory] = useState<"reward" | "character" | "background" | "vehicle">("reward");
+  const [itemCategory, setItemCategory] = useState<"reward" | "clothing" | "background" | "vehicle" | "pets" | "character">("reward");
   const [itemSlot, setItemSlot] = useState("head");
   const [itemFolder, setItemFolder] = useState("default");
   
@@ -181,12 +183,12 @@ export default function ShopPage() {
           </div>
 
           <div className="flex gap-2 flex-wrap mb-4">
-            {[ { id: "all", label: "Все" }, ...ITEM_CATEGORIES ].map(cat => (
+            {[ { value: "all", label: "Все" }, ...ITEM_CATEGORIES ].map(cat => (
               <button
-                key={cat.id || cat.value}
-                onClick={() => setActiveCategory((cat.id || cat.value) as any)}
+                key={cat.value}
+                onClick={() => setActiveCategory(cat.value as any)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-colors ${
-                  activeCategory === (cat.id || cat.value)
+                  activeCategory === cat.value
                     ? "bg-blue-600 text-white"
                     : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                 }`}
@@ -214,7 +216,11 @@ export default function ShopPage() {
                     {getCategoryIcon(item.category)}
                   </div>
                   
-                  <div className="text-5xl mt-4 mb-2 filter drop-shadow-md">{item.emoji}</div>
+                  {item.assetPath && item.assetPath.endsWith('.png') ? (
+                    <img src={item.assetPath} alt={item.name} className="w-20 h-20 object-contain mt-4 mb-2 filter drop-shadow-md" />
+                  ) : (
+                    <div className="text-5xl mt-4 mb-2 filter drop-shadow-md">{item.emoji}</div>
+                  )}
                   <div className="text-center w-full">
                     <h3 className="font-bold text-slate-200 text-sm mb-0.5 leading-tight">{item.name}</h3>
                     {item.slot && <p className="text-[10px] text-slate-500 uppercase tracking-widest">{ITEM_SLOTS.find(s=>s.value===item.slot)?.label}</p>}
@@ -251,7 +257,11 @@ export default function ShopPage() {
                   <div key={item.id} className={`bg-slate-900/60 border rounded-2xl p-4 flex flex-col items-center gap-3 relative shadow-sm transition-colors ${isEquipped ? "border-blue-500/50 bg-blue-950/20" : "border-slate-800/80"}`}>
                     {isEquipped && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg rounded-tr-lg tracking-wider uppercase">Надето</div>}
                     
-                    <div className="text-5xl my-2 filter drop-shadow-md">{item.emoji}</div>
+                    {item.assetPath && item.assetPath.endsWith('.png') ? (
+                      <img src={item.assetPath} alt={item.name} className="w-20 h-20 object-contain my-2 filter drop-shadow-md" />
+                    ) : (
+                      <div className="text-5xl my-2 filter drop-shadow-md">{item.emoji}</div>
+                    )}
                     <div className="text-center w-full">
                       <h3 className="font-bold text-slate-200 text-sm leading-tight">{item.name}</h3>
                       <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">{ITEM_CATEGORIES.find(c=>c.value===item.category)?.label}</p>
