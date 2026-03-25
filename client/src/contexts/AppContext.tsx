@@ -316,14 +316,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setGoals(savedData.goals || []);
     setGoalFolders(gFolders);
-    const savedShopItems = savedData.shopItems;
-    if (savedShopItems && savedShopItems.length > 0) {
-      const savedIds = new Set(savedShopItems.map((i: ShopItem) => i.id));
-      const newDefaults = defaultShopItems.filter((d: ShopItem) => !savedIds.has(d.id));
-      setShopItems([...savedShopItems, ...newDefaults]);
-    } else {
-      setShopItems(defaultShopItems as ShopItem[]);
-    }
+    const savedShopItems = savedData.shopItems || [];
+    const savedIds = new Set(savedShopItems.map((i: ShopItem) => i.id));
+    const newDefaults = defaultShopItems.filter((d: ShopItem) => !savedIds.has(d.id));
+    setShopItems([...savedShopItems, ...newDefaults]);
     setShopFolders(savedData.shopFolders || []);
     setCharacterState(savedData.characterState || {});
     setTasks(savedData.tasks || []);
@@ -355,9 +351,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setHabitFolders(remoteData.habitFolders || []);
               setGoals(remoteData.goals || []);
               setGoalFolders(remoteData.goalFolders || []);
-              setShopItems(remoteData.shopItems || []);
+              const remoteShopItems = remoteData.shopItems || [];
+              const rsIds = new Set(remoteShopItems.map((i: ShopItem) => i.id));
+              const rNewDefaults = defaultShopItems.filter((d: ShopItem) => !rsIds.has(d.id));
+              setShopItems([...remoteShopItems, ...rNewDefaults]);
+              
               setShopFolders(remoteData.shopFolders || []);
-              setCharacterState(remoteData.characterState || {});
+              setCharacterState({
+                pet: undefined,
+                background: undefined,
+                vehicle: undefined,
+                ...(remoteData.characterState || {})
+              });
               setTasks(remoteData.tasks || []);
               setCustomColors(remoteData.customColors || []);
               storage.saveData(remoteData);
@@ -403,9 +408,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   setHabitFolders(newData.habitFolders || []);
                   setGoals(newData.goals || []);
                   setGoalFolders(newData.goalFolders || []);
-                  setShopItems(newData.shopItems || []);
+                  const pushShopItems = newData.shopItems || [];
+                  const psIds = new Set(pushShopItems.map((i: ShopItem) => i.id));
+                  const pNewDefaults = defaultShopItems.filter((d: ShopItem) => !psIds.has(d.id));
+                  setShopItems([...pushShopItems, ...pNewDefaults]);
+
                   setShopFolders(newData.shopFolders || []);
-                  setCharacterState(newData.characterState || {});
+                  setCharacterState({
+                    pet: undefined,
+                    background: undefined,
+                    vehicle: undefined,
+                    ...(newData.characterState || {})
+                  });
                   setTasks(newData.tasks || []);
                   setCustomColors(newData.customColors || []);
                   storage.saveData(newData);
@@ -529,9 +543,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setHabitFolders(remoteData.habitFolders || []);
       setGoals(remoteData.goals || []);
       setGoalFolders(remoteData.goalFolders || []);
-      setShopItems(remoteData.shopItems || []);
+      const fSyncShopItems = remoteData.shopItems || [];
+      const fsIds = new Set(fSyncShopItems.map((i: ShopItem) => i.id));
+      const fNewDefaults = defaultShopItems.filter((d: ShopItem) => !fsIds.has(d.id));
+      setShopItems([...fSyncShopItems, ...fNewDefaults]);
+
       setShopFolders(remoteData.shopFolders || []);
-      setCharacterState(remoteData.characterState || {});
+      setCharacterState({
+        pet: undefined,
+        background: undefined,
+        vehicle: undefined,
+        ...(remoteData.characterState || {})
+      });
       setTasks(remoteData.tasks || []);
       setCustomColors(remoteData.customColors || []);
       storage.saveData(remoteData);

@@ -18,6 +18,7 @@ export interface StorageData {
   tasks?: any[];
   customColors?: string[];
   lastUpdated: string;
+  clientId?: string;
 }
 
 const STORAGE_KEY = "dhabits_data";
